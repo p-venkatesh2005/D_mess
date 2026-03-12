@@ -1,2 +1,2 @@
-# render python version
+# render python
 python-3.11.9
