@@ -16,7 +16,6 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
@@ -25,11 +24,9 @@ def create_app(config_name=None):
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'warning'
 
-    # Ensure upload folder exists
     upload_path = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
     os.makedirs(upload_path, exist_ok=True)
 
-    # Register blueprints
     from blueprints.auth import auth_bp
     from blueprints.student import student_bp
     from blueprints.worker import worker_bp
@@ -39,6 +36,12 @@ def create_app(config_name=None):
     app.register_blueprint(student_bp, url_prefix='/student')
     app.register_blueprint(worker_bp, url_prefix='/worker')
     app.register_blueprint(admin_bp, url_prefix='/admin')
+
+    # create tables automatically
+    with app.app_context():
+        db.create_all()
+
+    return app
 
     # Root redirect
     @app.route('/')
