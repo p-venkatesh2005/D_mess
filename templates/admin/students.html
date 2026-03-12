@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Manage <span class="text-gold">Students 👥</span></h2>
+    <p class="hero-sub">View, search, and manage all registered students</p>
+  </div>
+</div>
+
+<!-- Search + Filter -->
+<div class="filter-bar mb-4">
+  <form method="GET" class="d-flex gap-2 flex-wrap">
+    <input type="text" class="form-control mess-input" style="max-width:280px;" name="search"
+           value="{{ search }}" placeholder="Search by name, phone, room..." />
+    <select name="status" class="form-select mess-input" style="max-width:160px;">
+      <option value="all" {% if filter_status=='all' %}selected{% endif %}>All Status</option>
+      <option value="active" {% if filter_status=='active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if filter_status=='inactive' %}selected{% endif %}>Inactive</option>
+      <option value="expired" {% if filter_status=='expired' %}selected{% endif %}>Expired</option>
+    </select>
+    <button class="btn btn-gold">Search</button>
+  </form>
+</div>
+
+<div class="mess-card">
+  <div class="mess-card-header"><i class="bi bi-people-fill me-2"></i>{{ students|length }} Students Found</div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Phone</th><th>Room</th><th>Joined</th><th>Subscription</th><th>Account</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td class="fw-semibold">{{ s.user.name }}</td>
+            <td>{{ s.user.phone }}</td>
+            <td>{{ s.room_number or '—' }}</td>
+            <td>{{ s.join_date.strftime('%d %b %Y') }}</td>
+            <td><span class="status-badge status-{{ s.subscription_status }}">{{ s.subscription_status | title }}</span></td>
+            <td>
+              <span class="status-badge {% if s.user.is_active %}status-verified{% else %}status-rejected{% endif %}">
+                {{ 'Active' if s.user.is_active else 'Disabled' }}
+              </span>
+            </td>
+            <td>
+              <form method="POST" action="{{ url_for('admin.toggle_student', student_id=s.id) }}"
+                    onsubmit="return confirm('Toggle student account?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-sm {% if s.user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                  {{ 'Disable' if s.user.is_active else 'Enable' }}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">No students found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

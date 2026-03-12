@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Workers{% endblock %}
+{% block page_title %}Worker Management{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Manage <span class="text-gold">Workers 👨‍🍳</span></h2>
+    <p class="hero-sub">Add and manage mess workers</p>
+  </div>
+</div>
+<div class="row g-4">
+  <!-- Add Worker Form -->
+  <div class="col-lg-4">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-person-plus-fill me-2"></i>Add New Worker</div>
+      <div class="mess-card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3"><label class="form-label fw-semibold">Name</label>
+            <input type="text" class="form-control mess-input" name="name" required />
+          </div>
+          <div class="mb-3"><label class="form-label fw-semibold">Phone</label>
+            <input type="tel" class="form-control mess-input" name="phone" required maxlength="10" pattern="[6-9][0-9]{9}" />
+          </div>
+          <div class="mb-3"><label class="form-label fw-semibold">Password</label>
+            <input type="password" class="form-control mess-input" name="password" required minlength="6" />
+          </div>
+          <div class="mb-3"><label class="form-label fw-semibold">Role Description</label>
+            <input type="text" class="form-control mess-input" name="role_description" placeholder="Head Cook, Serving Staff..." />
+          </div>
+          <div class="mb-3"><label class="form-label fw-semibold">Shift</label>
+            <select class="form-select mess-input" name="shift">
+              <option value="morning">Morning</option>
+              <option value="evening">Evening</option>
+              <option value="full-day">Full Day</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-gold w-100"><i class="bi bi-person-plus-fill me-2"></i>Add Worker</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Workers List -->
+  <div class="col-lg-8">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-person-badge-fill me-2"></i>{{ workers|length }} Workers</div>
+      <div class="mess-card-body p-0">
+        <div class="table-responsive">
+          <table class="table mess-table mb-0">
+            <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Role</th><th>Shift</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for w in workers %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td class="fw-semibold">{{ w.user.name }}</td>
+                <td>{{ w.user.phone }}</td>
+                <td>{{ w.role_description or '—' }}</td>
+                <td><span class="badge bg-secondary">{{ w.shift | title }}</span></td>
+                <td><span class="status-badge {% if w.user.is_active %}status-verified{% else %}status-rejected{% endif %}">
+                  {{ 'Active' if w.user.is_active else 'Inactive' }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted py-4">No workers added yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

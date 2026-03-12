@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Order Queue{% endblock %}
+{% block page_title %}Order Queue{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Order <span class="text-gold">Queue 🥡</span></h2>
+    <p class="hero-sub">{{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-4">
+  <div class="filter-group">
+    <span class="filter-label">Status:</span>
+    {% for st in [('all','All'),('pending','Pending'),('preparing','Preparing'),('ready','Ready'),('served','Served'),('cancelled','Cancelled')] %}
+    <a href="{{ url_for('worker.orders', status=st[0], type=filter_type) }}"
+       class="filter-pill {% if filter_status == st[0] %}filter-active{% endif %}">{{ st[1] }}</a>
+    {% endfor %}
+  </div>
+  <div class="filter-group mt-2">
+    <span class="filter-label">Type:</span>
+    {% for tp in [('all','All'),('breakfast','Breakfast'),('lunch','Lunch'),('dinner','Dinner'),('tiffin','Tiffin')] %}
+    <a href="{{ url_for('worker.orders', status=filter_status, type=tp[0]) }}"
+       class="filter-pill {% if filter_type == tp[0] %}filter-active{% endif %}">{{ tp[1] }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if orders %}
+<div class="order-queue-grid">
+  {% for order in orders %}
+  <div class="order-queue-card status-card-{{ order.order_status }}">
+    <div class="oq-header">
+      <span class="oq-id">#{{ order.id }}</span>
+      <span class="order-status status-{{ order.order_status }}">{{ order.order_status | title }}</span>
+    </div>
+    <div class="oq-customer">{{ order.user.name }}</div>
+    <div class="oq-meal">{{ {'breakfast':'🌅','lunch':'☀️','dinner':'🌙','tiffin':'🥡'}.get(order.meal_type,'🍽️') }} {{ order.meal_type | title }}</div>
+    {% if order.notes %}<div class="oq-notes">📝 {{ order.notes }}</div>{% endif %}
+    <div class="oq-time">{{ order.created_at.strftime('%I:%M %p') }}</div>
+
+    <!-- Status transitions -->
+    <div class="oq-actions mt-2">
+      {% if order.order_status == 'pending' %}
+        <form method="POST" action="{{ url_for('worker.update_order_status', order_id=order.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button name="status" value="preparing" class="btn btn-gold btn-sm w-100"><i class="bi bi-fire me-1"></i>Start Preparing</button>
+        </form>
+      {% elif order.order_status == 'preparing' %}
+        <form method="POST" action="{{ url_for('worker.update_order_status', order_id=order.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button name="status" value="ready" class="btn btn-success btn-sm w-100"><i class="bi bi-check-circle me-1"></i>Mark Ready</button>
+        </form>
+      {% elif order.order_status == 'ready' %}
+        <form method="POST" action="{{ url_for('worker.update_order_status', order_id=order.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button name="status" value="served" class="btn btn-primary btn-sm w-100"><i class="bi bi-bag-check-fill me-1"></i>Mark Served</button>
+        </form>
+      {% elif order.order_status == 'served' %}
+        <div class="text-muted small text-center mt-1">✅ Completed</div>
+      {% elif order.order_status == 'cancelled' %}
+        <div class="text-muted small text-center mt-1">❌ Cancelled</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+  <div class="empty-state py-5"><i class="bi bi-bag-x fs-2"></i><p>No orders match the selected filter.</p></div>
+{% endif %}
+{% endblock %}

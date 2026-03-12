@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Feedback{% endblock %}
+{% block page_title %}Student Feedback{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Student <span class="text-gold">Feedback 💬</span></h2>
+    <p class="hero-sub">Review mess feedback, ratings, and complaints</p>
+  </div>
+</div>
+
+<div class="row align-items-center mb-4">
+  <div class="col-md-6">
+    <div class="d-flex align-items-center gap-3">
+      <div class="avg-rating text-gold fw-bold" style="font-size: 2.5rem;">{{ avg_rating }} <i class="bi bi-star-fill fs-4"></i></div>
+      <div class="text-muted lh-sm">Average Rating<br>from all students</div>
+    </div>
+  </div>
+  <div class="col-md-6 text-md-end mt-3 mt-md-0">
+    <div class="filter-group d-inline-flex">
+      {% for type_val, type_label in [('all','All'),('complaints','Complaints Only'),('general','General'),('breakfast','Breakfast'),('lunch','Lunch'),('dinner','Dinner')] %}
+      <a href="{{ url_for('admin.feedback', type=type_val) }}"
+         class="filter-pill {% if filter_type == type_val %}filter-active{% endif %}">{{ type_label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="mess-card">
+  <div class="mess-card-header"><i class="bi bi-invoices me-2"></i>{{ feedbacks|length }} Responses</div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0">
+        <thead><tr><th>Date</th><th>Student</th><th>Category</th><th>Rating</th><th>Message</th></tr></thead>
+        <tbody>
+          {% for fb in feedbacks %}
+          <tr class="{% if fb.is_complaint %}table-danger-subtle{% endif %}">
+            <td style="min-width: 100px;">{{ fb.created_at.strftime('%d %b %Y') }}</td>
+            <td class="fw-semibold">{{ fb.user.name }}</td>
+            <td>
+              <span class="badge bg-secondary">{{ fb.meal_type | title }}</span>
+              {% if fb.is_complaint %}<span class="badge bg-danger ms-1">Complaint</span>{% endif %}
+            </td>
+            <td>
+              <div class="text-gold text-nowrap">
+                {% for i in range(1,6) %}<i class="bi bi-star-fill {% if i > fb.rating %}opacity-25{% endif %}"></i>{% endfor %}
+              </div>
+            </td>
+            <td class="text-wrap" style="max-width: 400px;">{{ fb.message or '<span class="text-muted fst-italic">No message provided</span>'|safe }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-emoji-smile fs-2 d-block mb-2"></i>No feedback matches the selected filter.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome | Dwaraka Mess</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .landing-hero {
+      background-image: linear-gradient(rgba(34, 40, 49, 0.85), rgba(34, 40, 49, 0.85)), url('https://themewagon.github.io/feane/images/hero-bg.jpg');
+      background-size: cover;
+      background-position: center;
+      padding: 100px 0 60px;
+      color: var(--white);
+      text-align: center;
+    }
+    .landing-title {
+      font-family: var(--font-heading);
+      font-size: 4rem;
+      color: var(--gold);
+      margin-bottom: 20px;
+    }
+    .landing-subtitle {
+      font-size: 1.2rem;
+      max-width: 600px;
+      margin: 0 auto 50px;
+      color: #e0e0e0;
+    }
+    .role-card {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      padding: 40px 30px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--dark-bg);
+      display: block;
+      transition: var(--transition);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      height: 100%;
+      border: 2px solid transparent;
+    }
+    .role-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+      border-color: var(--gold);
+    }
+    .role-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 190, 51, 0.1);
+      color: var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin: 0 auto 20px;
+      transition: var(--transition);
+    }
+    .role-card:hover .role-icon {
+      background: var(--gold);
+      color: var(--white);
+    }
+    .role-title {
+      font-weight: 700;
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+    .role-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .about-section {
+      padding: 80px 0;
+      background: var(--light-bg);
+    }
+    .about-heading {
+      font-family: var(--font-heading);
+      color: var(--dark-bg);
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .about-feature {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 30px;
+    }
+    .about-feature i {
+      font-size: 2rem;
+      color: var(--gold);
+      margin-right: 20px;
+      margin-top: -5px;
+    }
+    .landing-footer {
+      background: var(--dark-bg);
+      color: var(--white);
+      padding: 40px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero Section -->
+  <div class="landing-hero">
+    <div class="container">
+      <div class="auth-icon" style="font-size: 4rem; margin-bottom: 10px;">🍛</div>
+      <h1 class="landing-title">Dwaraka Mess</h1>
+      <p class="landing-subtitle">Welcome to the modern eating experience. Select your portal below to access the daily menu, order tiffin, or manage kitchen operations.</p>
+      
+      <!-- Role Cards -->
+      <div class="row g-4 mt-2 justify-content-center">
+        
+        <!-- Student Card -->
+        <div class="col-md-4">
+          <a href="{{ url_for('auth.login') }}" class="role-card">
+            <div class="role-icon">
+              <i class="bi bi-person-fill"></i>
+            </div>
+            <h3 class="role-title">Student Portal</h3>
+            <p class="role-desc">View daily menus, subscribe to monthly plans, order tiffins, and manage attendance leaves.</p>
+            <span class="btn btn-gold-outline w-100 mt-3">Log In as Student</span>
+          </a>
+        </div>
+
+        <!-- Worker Card -->
+        <div class="col-md-4">
+          <a href="{{ url_for('auth.login') }}" class="role-card">
+            <div class="role-icon">
+              <i class="bi bi-egg-fried"></i>
+            </div>
+            <h3 class="role-title">Kitchen Worker</h3>
+            <p class="role-desc">Manage live tiffin queues, view daily eating analytics, and process pending meal orders.</p>
+            <span class="btn btn-gold-outline w-100 mt-3">Log In as Worker</span>
+          </a>
+        </div>
+
+        <!-- Admin Card -->
+        <div class="col-md-4">
+          <a href="{{ url_for('auth.login') }}" class="role-card">
+            <div class="role-icon">
+              <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <h3 class="role-title">Admin Access</h3>
+            <p class="role-desc">Oversee mess operations, verify payments, manage students, update menus, and view reports.</p>
+            <span class="btn btn-gold-outline w-100 mt-3">Log In as Admin</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- About Section -->
+  <div class="about-section">
+    <div class="container">
+      <h2 class="about-heading">About <span class="text-gold">Dwaraka Mess</span></h2>
+      <div class="row align-items-center mt-5">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+          <img src="https://themewagon.github.io/feane/images/about-img.png" alt="Delicious Food" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: cover; width: 100%;">
+        </div>
+        <div class="col-lg-6 ps-lg-5">
+          <div class="about-feature">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <h4 class="fw-bold">Hygienic & Healthy</h4>
+              <p class="text-muted">We prioritize your health by maintaining the highest hygiene standards in our kitchen and sourcing fresh, local ingredients daily.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <i class="bi bi-clock-fill"></i>
+            <div>
+              <h4 class="fw-bold">Punctual Timings</h4>
+              <p class="text-muted">Meals are prepared and served right on schedule. Hot breakfasts, fulfilling lunches, and delicious dinners.</p>
+            </div>
+          </div>
+          <div class="about-feature">
+            <i class="bi bi-chat-square-dots-fill"></i>
+            <div>
+              <h4 class="fw-bold">Student-First Approach</h4>
+              <p class="text-muted">Your feedback matters! We constantly update our menus based on what our students love eating.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="container">
+      <h3 style="font-family: var(--font-heading); color: var(--gold); margin-bottom: 20px;">Dwaraka Mess</h3>
+      <p class="text-muted mb-0">&copy; {{ today.year if today else '2025' }} Dwaraka Mess Management System. All rights reserved.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Menu Management{% endblock %}
+{% block page_title %}Menu Management{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Manage <span class="text-gold">Menu 🍽️</span></h2>
+    <p class="hero-sub">Set daily menu for the upcoming days</p>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-journal-plus me-2"></i>Add / Update Menu</div>
+      <div class="mess-card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3"><label class="form-label fw-semibold">Date</label>
+            <input type="date" class="form-control mess-input" name="menu_date"
+                   value="{{ today.isoformat() }}" required /></div>
+          <div class="mb-3"><label class="form-label fw-semibold">🌅 Breakfast</label>
+            <textarea class="form-control mess-input" name="breakfast" rows="2" placeholder="Idli, Sambar, Chutney..."></textarea></div>
+          <div class="mb-3"><label class="form-label fw-semibold">☀️ Lunch</label>
+            <textarea class="form-control mess-input" name="lunch" rows="2" placeholder="Rice, Dal, Curry, Salad..."></textarea></div>
+          <div class="mb-3"><label class="form-label fw-semibold">🌙 Dinner</label>
+            <textarea class="form-control mess-input" name="dinner" rows="2" placeholder="Chapati, Sabzi, Rice..."></textarea></div>
+          <div class="mb-3"><label class="form-label fw-semibold">🌟 Special (optional)</label>
+            <input type="text" class="form-control mess-input" name="special" placeholder="Sunday Special, Festival..."/></div>
+          <button type="submit" class="btn btn-gold w-100"><i class="bi bi-save-fill me-2"></i>Save Menu</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-calendar3 me-2"></i>Upcoming Menus (Next 14 days)</div>
+      <div class="mess-card-body p-0">
+        <div class="table-responsive">
+          <table class="table mess-table mb-0">
+            <thead><tr><th>Date</th><th>Breakfast</th><th>Lunch</th><th>Dinner</th><th>Special</th></tr></thead>
+            <tbody>
+              {% for m in menus %}
+              <tr {% if m.date == today %}class="today-row"{% endif %}>
+                <td><strong>{{ m.date.strftime('%a, %d %b') }}</strong>{% if m.date == today %} <span class="today-pill">Today</span>{% endif %}</td>
+                <td><small>{{ m.breakfast[:40] if m.breakfast else '—' }}</small></td>
+                <td><small>{{ m.lunch[:40] if m.lunch else '—' }}</small></td>
+                <td><small>{{ m.dinner[:40] if m.dinner else '—' }}</small></td>
+                <td><small>{{ m.special or '—' }}</small></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No upcoming menus set.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

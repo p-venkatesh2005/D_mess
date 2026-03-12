@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Payments{% endblock %}
+{% block page_title %}Payment Verification{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Verify <span class="text-gold">Payments 💳</span></h2>
+    <p class="hero-sub">Review and verify student payment screenshots</p>
+  </div>
+</div>
+
+<div class="filter-bar mb-4">
+  <div class="filter-group">
+    {% for s in [('pending','Pending'),('verified','Verified'),('rejected','Rejected'),('all','All')] %}
+    <a href="{{ url_for('admin.payments', status=s[0]) }}"
+       class="filter-pill {% if filter_status == s[0] %}filter-active{% endif %}">{{ s[1] }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="mess-card">
+  <div class="mess-card-header"><i class="bi bi-receipt me-2"></i>{{ payments|length }} Payments</div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0">
+        <thead>
+          <tr><th>#</th><th>Student</th><th>Type</th><th>Amount</th><th>Date</th><th>Screenshot</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td>#{{ p.id }}</td>
+            <td class="fw-semibold">{{ p.student.user.name }}<br><small class="text-muted">{{ p.student.user.phone }}</small></td>
+            <td>{{ p.payment_type | title }}</td>
+            <td class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</td>
+            <td>{{ p.created_at.strftime('%d %b %Y %H:%M') }}</td>
+            <td>
+              {% if p.screenshot_path %}
+              <a href="{{ url_for('static', filename=p.screenshot_path) }}" target="_blank"
+                 class="btn btn-sm btn-dark-outline"><i class="bi bi-eye"></i> View</a>
+              {% else %}—{% endif %}
+            </td>
+            <td><span class="status-badge status-{{ p.status }}">
+              {% if p.status == 'verified' %}✅ Verified
+              {% elif p.status == 'pending' %}⏳ Pending
+              {% else %}❌ Rejected{% endif %}
+            </span></td>
+            <td>
+              {% if p.status == 'pending' %}
+              <div class="d-flex gap-1">
+                <form method="POST" action="{{ url_for('admin.payment_action', payment_id=p.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button name="action" value="verify" class="btn btn-sm btn-success">✅ Verify</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.payment_action', payment_id=p.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button name="action" value="reject" class="btn btn-sm btn-danger">❌ Reject</button>
+                </form>
+              </div>
+              {% elif p.verified_at %}
+                <small class="text-muted">{{ p.verified_at.strftime('%d %b %H:%M') }}</small>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">No payments found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

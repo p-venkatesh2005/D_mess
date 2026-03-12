@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero Welcome Banner -->
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Hello, <span class="text-gold">{{ current_user.name }}!</span> 👋</h2>
+    <p class="hero-sub">Here's your mess overview for today — <strong>{{ today.strftime('%A, %d %B %Y') }}</strong></p>
+  </div>
+  {% if active_leave %}
+    <span class="badge badge-on-leave pulse-badge">🌴 On Leave</span>
+  {% elif student.subscription_status == 'active' %}
+    <span class="badge badge-active-sub">✅ Subscription Active</span>
+  {% else %}
+    <span class="badge badge-inactive-sub">⚠️ No Subscription</span>
+  {% endif %}
+</div>
+
+<!-- Stats Cards Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-gold">
+      <div class="stat-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="stat-value">{{ 'Active' if student.subscription_status == 'active' else 'Inactive' }}</div>
+      <div class="stat-label">Subscription</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-bag-fill"></i></div>
+      <div class="stat-value">{{ today_orders|length }}</div>
+      <div class="stat-label">Today's Orders</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-warn">
+      <div class="stat-icon"><i class="bi bi-credit-card-fill"></i></div>
+      <div class="stat-value">{{ pending_payments }}</div>
+      <div class="stat-label">Pending Payments</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-success">
+      <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-value">{{ 'Eating' if today_attendance and today_attendance.status == 'eating' else 'Not Marked' }}</div>
+      <div class="stat-label">Today's Status</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Today's Menu -->
+  <div class="col-lg-5">
+    <div class="mess-card">
+      <div class="mess-card-header">
+        <i class="bi bi-journal-richtext me-2"></i>Today's Menu
+      </div>
+      <div class="mess-card-body">
+        {% if menu %}
+          {% if menu.special %}
+            <div class="special-badge mb-2">🌟 {{ menu.special }}</div>
+          {% endif %}
+          <div class="meal-item">
+            <div class="meal-badge breakfast-badge"><i class="bi bi-sunrise-fill"></i> Breakfast</div>
+            <div class="meal-time">7:00 AM – 9:00 AM</div>
+            <p class="meal-text">{{ menu.breakfast or 'Not set' }}</p>
+          </div>
+          <div class="meal-item">
+            <div class="meal-badge lunch-badge"><i class="bi bi-sun-fill"></i> Lunch</div>
+            <div class="meal-time">12:00 PM – 2:00 PM</div>
+            <p class="meal-text">{{ menu.lunch or 'Not set' }}</p>
+          </div>
+          <div class="meal-item">
+            <div class="meal-badge dinner-badge"><i class="bi bi-moon-stars-fill"></i> Dinner</div>
+            <div class="meal-time">7:00 PM – 9:00 PM</div>
+            <p class="meal-text">{{ menu.dinner or 'Not set' }}</p>
+          </div>
+        {% else %}
+          <div class="empty-state"><i class="bi bi-journal-x"></i><p>No menu for today yet.</p></div>
+        {% endif %}
+        <a href="{{ url_for('student.menu') }}" class="btn btn-gold-outline w-100 mt-3">View Full Weekly Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Announcements + Quick Actions -->
+  <div class="col-lg-7">
+    <!-- Quick Actions -->
+    <div class="mess-card mb-4">
+      <div class="mess-card-header"><i class="bi bi-lightning-charge-fill me-2"></i>Quick Actions</div>
+      <div class="mess-card-body">
+        <div class="quick-actions-grid">
+          <a href="{{ url_for('student.order') }}" class="quick-action-btn">
+            <i class="bi bi-bag-plus-fill"></i>
+            <span>Place Order</span>
+          </a>
+          <a href="{{ url_for('student.payment') }}" class="quick-action-btn">
+            <i class="bi bi-upload"></i>
+            <span>Upload Payment</span>
+          </a>
+          <a href="{{ url_for('student.attendance') }}" class="quick-action-btn">
+            <i class="bi bi-check2-square"></i>
+            <span>Mark Attendance</span>
+          </a>
+          <a href="{{ url_for('student.leave') }}" class="quick-action-btn">
+            <i class="bi bi-calendar2-x"></i>
+            <span>Request Leave</span>
+          </a>
+          <a href="{{ url_for('student.subscribe') }}" class="quick-action-btn">
+            <i class="bi bi-star-fill"></i>
+            <span>Subscribe</span>
+          </a>
+          <a href="{{ url_for('student.feedback') }}" class="quick-action-btn">
+            <i class="bi bi-chat-heart-fill"></i>
+            <span>Give Feedback</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-megaphone-fill me-2"></i>Latest Notices</div>
+      <div class="mess-card-body">
+        {% if announcements %}
+          {% for ann in announcements %}
+            <div class="announcement-item">
+              <div class="ann-category cat-{{ ann.category }}">{{ ann.category | title }}</div>
+              <div class="ann-title">{{ ann.title }}</div>
+              <p class="ann-msg">{{ ann.message[:100] }}{% if ann.message|length > 100 %}...{% endif %}</p>
+              <small class="ann-date">{{ ann.created_at.strftime('%d %b %Y') }}</small>
+            </div>
+          {% endfor %}
+          <a href="{{ url_for('student.announcements') }}" class="btn btn-gold-outline w-100 mt-2">View All Notices</a>
+        {% else %}
+          <div class="empty-state"><i class="bi bi-megaphone"></i><p>No announcements yet.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Payments -->
+{% if recent_payments %}
+<div class="mess-card mt-4">
+  <div class="mess-card-header"><i class="bi bi-clock-history me-2"></i>Recent Payment Activity</div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0">
+        <thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for p in recent_payments %}
+          <tr>
+            <td>#{{ p.id }}</td>
+            <td>{{ p.payment_type | title }}</td>
+            <td class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</td>
+            <td>{{ p.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              <span class="status-badge status-{{ p.status }}">
+                {{ '✅ Verified' if p.status == 'verified' else '⏳ Pending' if p.status == 'pending' else '❌ Rejected' }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

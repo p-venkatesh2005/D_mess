@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Dwaraka Mess{% endblock %} | Dwaraka Mess Management</title>
+  <meta name="description" content="Dwaraka Mess Management System - Student mess and tiffin center management platform." />
+  <!-- Google Fonts: Dancing Script + Open Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+<div class="d-flex" id="wrapper">
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">🍛</span>
+      <span class="brand-name">Dwaraka</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ current_user.name[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ current_user.name }}</div>
+        <div class="user-role badge-role-{{ current_user.role }}">{{ current_user.role | title }}</div>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      {% if current_user.role == 'admin' %}
+        <li class="nav-label">Admin Panel</li>
+        <li><a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a href="{{ url_for('admin.students') }}" class="{% if request.endpoint == 'admin.students' %}active{% endif %}"><i class="bi bi-people-fill"></i> Students</a></li>
+        <li><a href="{{ url_for('admin.workers') }}" class="{% if request.endpoint == 'admin.workers' %}active{% endif %}"><i class="bi bi-person-badge-fill"></i> Workers</a></li>
+        <li><a href="{{ url_for('admin.payments') }}" class="{% if request.endpoint == 'admin.payments' %}active{% endif %}"><i class="bi bi-credit-card-2-front-fill"></i> Payments</a></li>
+        <li><a href="{{ url_for('admin.menu') }}" class="{% if request.endpoint == 'admin.menu' %}active{% endif %}"><i class="bi bi-journal-richtext"></i> Menu</a></li>
+        <li><a href="{{ url_for('admin.announcements') }}" class="{% if request.endpoint == 'admin.announcements' %}active{% endif %}"><i class="bi bi-megaphone-fill"></i> Announcements</a></li>
+        <li><a href="{{ url_for('admin.feedback') }}" class="{% if request.endpoint == 'admin.feedback' %}active{% endif %}"><i class="bi bi-chat-square-dots-fill"></i> Feedback</a></li>
+        <li><a href="{{ url_for('admin.leaves') }}" class="{% if request.endpoint == 'admin.leaves' %}active{% endif %}"><i class="bi bi-calendar2-x-fill"></i> Leave Requests</a></li>
+      {% elif current_user.role == 'worker' %}
+        <li class="nav-label">Worker Panel</li>
+        <li><a href="{{ url_for('worker.dashboard') }}" class="{% if request.endpoint == 'worker.dashboard' %}active{% endif %}"><i class="bi bi-house-fill"></i> Dashboard</a></li>
+        <li><a href="{{ url_for('worker.orders') }}" class="{% if request.endpoint == 'worker.orders' %}active{% endif %}"><i class="bi bi-bag-fill"></i> Orders</a></li>
+      {% else %}
+        <li class="nav-label">My Mess</li>
+        <li><a href="{{ url_for('student.dashboard') }}" class="{% if request.endpoint == 'student.dashboard' %}active{% endif %}"><i class="bi bi-house-fill"></i> Dashboard</a></li>
+        <li><a href="{{ url_for('student.menu') }}" class="{% if request.endpoint == 'student.menu' %}active{% endif %}"><i class="bi bi-journal-richtext"></i> Menu</a></li>
+        <li><a href="{{ url_for('student.order') }}" class="{% if request.endpoint == 'student.order' %}active{% endif %}"><i class="bi bi-bag-fill"></i> Order</a></li>
+        <li><a href="{{ url_for('student.subscribe') }}" class="{% if request.endpoint == 'student.subscribe' %}active{% endif %}"><i class="bi bi-calendar-check-fill"></i> Subscribe</a></li>
+        <li><a href="{{ url_for('student.payment') }}" class="{% if request.endpoint == 'student.payment' %}active{% endif %}"><i class="bi bi-credit-card-fill"></i> Payments</a></li>
+        <li><a href="{{ url_for('student.attendance') }}" class="{% if request.endpoint == 'student.attendance' %}active{% endif %}"><i class="bi bi-check2-circle"></i> Attendance</a></li>
+        <li><a href="{{ url_for('student.leave') }}" class="{% if request.endpoint == 'student.leave' %}active{% endif %}"><i class="bi bi-calendar2-x-fill"></i> Leave</a></li>
+        <li><a href="{{ url_for('student.announcements') }}" class="{% if request.endpoint == 'student.announcements' %}active{% endif %}"><i class="bi bi-megaphone-fill"></i> Notices</a></li>
+        <li><a href="{{ url_for('student.feedback') }}" class="{% if request.endpoint == 'student.feedback' %}active{% endif %}"><i class="bi bi-chat-dots-fill"></i> Feedback</a></li>
+      {% endif %}
+    </ul>
+    <div class="sidebar-footer">
+      <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="bi bi-box-arrow-left"></i> Logout</a>
+    </div>
+  </nav>
+
+  <!-- ═══ MAIN CONTENT ═══════════════════════════════════════════════════ -->
+  <div id="page-content-wrapper">
+    <!-- Top navbar -->
+    <nav class="top-navbar">
+      <button id="sidebarToggle" class="sidebar-toggle-btn" aria-label="Toggle sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="top-nav-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="top-nav-right">
+        <span class="top-time" id="live-time"></span>
+        <span class="top-date">{{ now.strftime('%d %b %Y') if now else '' }}</span>
+      </div>
+    </nav>
+
+    <!-- Flash messages -->
+    <div class="flash-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show m-0 flash-msg" role="alert">
+              <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-triangle-fill' if category == 'danger' else 'exclamation-circle-fill' if category == 'warning' else 'info-circle-fill' }} me-2"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+{% else %}
+<!-- ═══ AUTH PAGES (no sidebar) ═══════════════════════════════════════════ -->
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

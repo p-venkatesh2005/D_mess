@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Worker Dashboard{% endblock %}
+{% block page_title %}Worker Dashboard{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Kitchen <span class="text-gold">Dashboard 👨‍🍳</span></h2>
+    <p class="hero-sub">{{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+</div>
+
+<!-- Meal Count Cards -->
+<div class="row g-3 mb-4">
+  {% for meal, icon in [('breakfast','🌅'),('lunch','☀️'),('dinner','🌙'),('tiffin','🥡')] %}
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-{{ 'gold' if meal == 'breakfast' else 'dark' if meal == 'lunch' else 'warn' if meal == 'dinner' else 'success' }}">
+      <div class="stat-icon">{{ icon }}</div>
+      <div class="stat-value">{{ order_counts.get(meal, 0) }}</div>
+      <div class="stat-label">{{ meal | title }} Orders</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-value">{{ eating_count }}</div>
+      <div class="stat-label">Students Eating Today</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="stat-card stat-warn">
+      <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="stat-value">{{ pending_payments|length }}</div>
+      <div class="stat-label">Pending Payments</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Pending Tiffin Orders -->
+  <div class="col-lg-6">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-bag-fill me-2"></i>Pending Tiffin Orders</div>
+      <div class="mess-card-body">
+        {% if pending_orders %}
+          {% for order in pending_orders %}
+          <div class="worker-order-item">
+            <div class="order-info">
+              <div class="order-id">#{{ order.id }}</div>
+              <div class="order-customer">{{ order.user.name }}</div>
+              <div class="order-note text-muted">{{ order.notes or 'No notes' }}</div>
+            </div>
+            <form method="POST" action="{{ url_for('worker.update_order_status', order_id=order.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button name="status" value="preparing" class="btn btn-gold btn-sm">
+                <i class="bi bi-fire"></i> Start
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state"><i class="bi bi-bag-check fs-3"></i><p>No pending orders.</p></div>
+        {% endif %}
+        <a href="{{ url_for('worker.orders') }}" class="btn btn-gold-outline w-100 mt-3">View All Orders</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Payments -->
+  <div class="col-lg-6">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-credit-card-fill me-2"></i>Pending Payments to Verify</div>
+      <div class="mess-card-body p-0">
+        {% if pending_payments %}
+        <div class="table-responsive">
+          <table class="table mess-table mb-0">
+            <thead><tr><th>Student</th><th>Amount</th><th>Type</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for p in pending_payments %}
+              <tr>
+                <td>{{ p.student.user.name }}</td>
+                <td class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</td>
+                <td>{{ p.payment_type | title }}</td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <form method="POST" action="{{ url_for('worker.verify_payment', payment_id=p.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button name="action" value="verify" class="btn btn-sm btn-success">✅</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('worker.verify_payment', payment_id=p.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button name="action" value="reject" class="btn btn-sm btn-danger">❌</button>
+                    </form>
+                    {% if p.screenshot_path %}
+                    <a href="{{ url_for('static', filename=p.screenshot_path) }}" target="_blank" class="btn btn-sm btn-secondary">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <div class="empty-state py-4"><i class="bi bi-check2-all fs-3"></i><p>All payments verified!</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

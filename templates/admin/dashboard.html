@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Admin <span class="text-gold">Overview 📊</span></h2>
+    <p class="hero-sub">{{ today.strftime('%A, %d %B %Y') }} — Dwaraka Mess Management</p>
+  </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('admin.students') }}" class="stat-card stat-gold text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-value">{{ total_students }}</div>
+      <div class="stat-label">Total Students</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('admin.workers') }}" class="stat-card stat-dark text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
+      <div class="stat-value">{{ total_workers }}</div>
+      <div class="stat-label">Workers</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-success">
+      <div class="stat-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="stat-value">{{ active_subscriptions }}</div>
+      <div class="stat-label">Active Subscriptions</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('admin.payments') }}" class="stat-card stat-warn text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="stat-value">{{ pending_payments }}</div>
+      <div class="stat-label">Pending Payments</div>
+    </a>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-gold">
+      <div class="stat-icon"><i class="bi bi-currency-rupee"></i></div>
+      <div class="stat-value">₹{{ "%.0f"|format(monthly_revenue) }}</div>
+      <div class="stat-label">This Month's Revenue</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-bag-fill"></i></div>
+      <div class="stat-value">{{ today_orders }}</div>
+      <div class="stat-label">Today's Orders</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-success">
+      <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-value">{{ eating_today }}</div>
+      <div class="stat-label">Eating Today</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('admin.leaves') }}" class="stat-card stat-warn text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-calendar2-x-fill"></i></div>
+      <div class="stat-value">{{ pending_leaves }}</div>
+      <div class="stat-label">Pending Leaves</div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Revenue Chart -->
+  <div class="col-lg-7">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-bar-chart-fill me-2"></i>Monthly Revenue (Last 6 Months)</div>
+      <div class="mess-card-body">
+        <canvas id="revenueChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Payments -->
+  <div class="col-lg-5">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-clock-history me-2"></i>Recent Payments</div>
+      <div class="mess-card-body p-0">
+        {% for p in recent_payments %}
+        <div class="recent-payment-row">
+          <div>
+            <div class="fw-semibold">{{ p.student.user.name }}</div>
+            <small class="text-muted">{{ p.payment_type | title }} · {{ p.created_at.strftime('%d %b') }}</small>
+          </div>
+          <div class="text-end">
+            <div class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</div>
+            <span class="status-badge status-{{ p.status }}">{{ p.status | title }}</span>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="p-3">
+          <a href="{{ url_for('admin.payments') }}" class="btn btn-gold-outline w-100">View All Payments</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Announcements + Quick Admin Actions -->
+<div class="row g-4 mt-2">
+  <div class="col-lg-6">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-megaphone-fill me-2"></i>Active Announcements</div>
+      <div class="mess-card-body">
+        {% for ann in announcements %}
+          <div class="ann-mini"><span class="ann-dot cat-{{ ann.category }}"></span><span>{{ ann.title }}</span></div>
+        {% else %}
+          <div class="empty-state py-3"><i class="bi bi-megaphone"></i><p>No active announcements.</p></div>
+        {% endfor %}
+        <a href="{{ url_for('admin.announcements') }}" class="btn btn-gold-outline w-100 mt-3">Manage Announcements</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-lightning-charge-fill me-2"></i>Quick Actions</div>
+      <div class="mess-card-body">
+        <div class="admin-quick-grid">
+          <a href="{{ url_for('admin.payments', status='pending') }}" class="admin-quick-btn">
+            <i class="bi bi-credit-card-2-front-fill"></i><span>Verify Payments</span>
+          </a>
+          <a href="{{ url_for('admin.menu') }}" class="admin-quick-btn">
+            <i class="bi bi-journal-richtext"></i><span>Update Menu</span>
+          </a>
+          <a href="{{ url_for('admin.announcements') }}" class="admin-quick-btn">
+            <i class="bi bi-megaphone-fill"></i><span>Post Notice</span>
+          </a>
+          <a href="{{ url_for('admin.feedback') }}" class="admin-quick-btn">
+            <i class="bi bi-chat-square-dots-fill"></i><span>View Feedback</span>
+          </a>
+          <a href="{{ url_for('admin.leaves') }}" class="admin-quick-btn">
+            <i class="bi bi-calendar2-x-fill"></i><span>Leave Requests</span>
+          </a>
+          <a href="{{ url_for('admin.workers') }}" class="admin-quick-btn">
+            <i class="bi bi-person-badge-fill"></i><span>Add Worker</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ctx = document.getElementById('revenueChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: {{ monthly_data | map(attribute='month') | list | tojson }},
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: {{ monthly_data | map(attribute='revenue') | list | tojson }},
+      backgroundColor: 'rgba(255, 190, 51, 0.8)',
+      borderColor: '#ffbe33',
+      borderWidth: 2,
+      borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#aaa', callback: v => '₹' + v }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+    }
+  }
+});
+</script>
+{% endblock %}
