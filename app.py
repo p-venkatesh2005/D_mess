@@ -41,8 +41,6 @@ def create_app(config_name=None):
     with app.app_context():
         db.create_all()
 
-    return app
-
     # Root redirect
     @app.route('/')
     def index():
