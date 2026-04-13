@@ -16,7 +16,13 @@
     <div class="auth-brand">
       <span class="auth-icon">🍛</span>
       <h1 class="auth-title">Dwaraka Mess</h1>
-      <p class="auth-subtitle">Your daily meal, managed with care</p>
+      {% set role_param = request.args.get('role', 'student') %}
+      <p class="auth-subtitle">
+        {% if role_param == 'admin' %}Admin Access Portal
+        {% elif role_param == 'worker' %}Kitchen Worker Portal
+        {% else %}Student Portal
+        {% endif %}
+      </p>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -48,7 +54,13 @@
     </form>
 
     <div class="auth-footer">
-      <p>New student? <a href="{{ url_for('auth.register') }}" class="auth-link">Register here</a></p>
+      {% if role_param == 'student' %}
+        <p>New student? <a href="{{ url_for('auth.register') }}" class="auth-link">Register here</a></p>
+      {% elif role_param == 'admin' %}
+        <p class="text-muted small">Authorized administration personnel only.</p>
+      {% elif role_param == 'worker' %}
+        <p class="text-muted small">Authorized kitchen staff only.</p>
+      {% endif %}
     </div>
 
 

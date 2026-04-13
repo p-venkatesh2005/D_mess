@@ -118,7 +118,7 @@
         
         <!-- Student Card -->
         <div class="col-md-4">
-          <a href="{{ url_for('auth.login') }}" class="role-card">
+          <a href="{{ url_for('auth.login', role='student') }}" class="role-card">
             <div class="role-icon">
               <i class="bi bi-person-fill"></i>
             </div>
@@ -130,7 +130,7 @@
 
         <!-- Worker Card -->
         <div class="col-md-4">
-          <a href="{{ url_for('auth.login') }}" class="role-card">
+          <a href="{{ url_for('auth.login', role='worker') }}" class="role-card">
             <div class="role-icon">
               <i class="bi bi-egg-fried"></i>
             </div>
@@ -142,7 +142,7 @@
 
         <!-- Admin Card -->
         <div class="col-md-4">
-          <a href="{{ url_for('auth.login') }}" class="role-card">
+          <a href="{{ url_for('auth.login', role='admin') }}" class="role-card">
             <div class="role-icon">
               <i class="bi bi-shield-lock-fill"></i>
             </div>
