@@ -2,11 +2,12 @@
 # exit on error
 set -o errexit
 
+echo "📦 Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Create necessary directories
+echo "📁 Creating necessary directories..."
 mkdir -p static/uploads/payments
 
-# Initialize database tables (safe - doesn't drop data)
-python init_db_safe.py
+echo "✅ Build complete!"
+echo "ℹ️  Database will be initialized on first application start"
