@@ -1,0 +1,38 @@
+services:
+  # Flask Web Service
+  - type: web
+    name: dwaraka-mess
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile -"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dwaraka-mess-db
+          property: connectionString
+      - key: ADMIN_PHONE
+        value: "9999999999"
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: DB_POOL_SIZE
+        value: "10"
+      - key: DB_MAX_OVERFLOW
+        value: "20"
+      - key: DB_POOL_RECYCLE
+        value: "1800"
+
+databases:
+  # PostgreSQL Database
+  - name: dwaraka-mess-db
+    databaseName: dwaraka_mess
+    plan: free
+    region: oregon

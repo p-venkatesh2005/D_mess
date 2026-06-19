@@ -14,9 +14,13 @@ class Config:
     db_port = os.environ.get('DB_PORT', '5432')
     db_name = os.environ.get('DB_NAME', 'dwaraka_mess')
     
-    # Use DATABASE_URL if provided (for cloud deployments like Heroku, Railway)
+    # Use DATABASE_URL if provided (for cloud deployments like Heroku, Railway, Render)
     if os.environ.get('DATABASE_URL'):
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+        database_url = os.environ.get('DATABASE_URL')
+        # Fix for Render/Heroku - they use postgres:// but SQLAlchemy needs postgresql://
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = database_url
     else:
         # Build connection string with URL encoding for special characters
         SQLALCHEMY_DATABASE_URI = (
