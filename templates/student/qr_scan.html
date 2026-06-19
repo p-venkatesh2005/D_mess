@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% block title %}Attendance Confirmed{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+
+{% block head %}
+<style>
+@keyframes popIn {
+  0%   { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+  65%  { transform: scale(1.1) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.scan-wrapper {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scan-card {
+  background: linear-gradient(145deg, #1e1e2e, #16213e);
+  border-radius: 24px;
+  border: 1.5px solid rgba(255,190,51,0.2);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  animation: slideUp 0.5s ease forwards;
+}
+.scan-icon {
+  font-size: 4.5rem;
+  animation: popIn 0.6s cubic-bezier(.36,.07,.19,.97) forwards;
+  display: block;
+  margin-bottom: 12px;
+}
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.profile-row:last-child { border-bottom: none; }
+.profile-label { color: #6b7280; font-size: 0.82rem; }
+.profile-value { font-weight: 600; font-size: 0.95rem; color: #f3f4f6; }
+.status-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 14px; border-radius: 20px;
+  font-size: 0.78rem; font-weight: 700;
+}
+.chip-active   { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.chip-inactive { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.time-stamp-box {
+  background: rgba(255,190,51,0.07);
+  border: 1px solid rgba(255,190,51,0.18);
+  border-radius: 14px;
+  padding: 16px 20px;
+  text-align: center;
+  margin: 20px 0;
+}
+.time-big { font-size: 2rem; font-weight: 800; color: #ffbe33; letter-spacing: 1px; }
+.date-small { color: #9ca3af; font-size: 0.85rem; margin-top: 2px; }
+.avatar-circle {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #ffbe33, #f59e0b);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; font-weight: 800; color: #1a1a2e;
+  margin: 0 auto 16px;
+}
+.already-card {
+  background: linear-gradient(145deg, #1e1e2e, #16213e);
+  border-radius: 24px;
+  border: 1.5px solid rgba(255,190,51,0.15);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  animation: slideUp 0.5s ease forwards;
+  text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scan-wrapper">
+  <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+
+    {% if already_scanned %}
+    <!-- ── Already Scanned ─────────────────────────────────── -->
+    <div class="already-card">
+      <span class="scan-icon">⚠️</span>
+      <h3 class="fw-bold mb-1" style="color:#f3f4f6;">Already Recorded</h3>
+      <p class="text-muted mb-0">
+        Attendance for this session was already marked.
+      </p>
+
+      <!-- Show existing scan details -->
+      <div class="time-stamp-box mt-4">
+        <div class="time-big">
+          {{ scan_time_ist.strftime('%I:%M %p') if scan_time_ist else '—' }}
+        </div>
+        <div class="date-small">
+          {{ today.strftime('%A, %d %B %Y') }}
+        </div>
+      </div>
+
+      <div class="text-start mt-3 mb-4">
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-person-fill me-1"></i>Name</span>
+          <span class="profile-value">{{ student.user.name }}</span>
+        </div>
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-phone-fill me-1"></i>Phone</span>
+          <span class="profile-value">{{ student.user.phone }}</span>
+        </div>
+      </div>
+
+      <a href="{{ url_for('student.dashboard') }}" class="btn btn-gold-outline w-100">
+        <i class="bi bi-house-fill me-1"></i> Back to Dashboard
+      </a>
+    </div>
+
+    {% else %}
+    <!-- ── Successful Scan ─────────────────────────────────── -->
+    <div class="scan-card text-center">
+
+      <span class="scan-icon">✅</span>
+      <h3 class="fw-bold mb-0" style="color:#4ade80;">Attendance Recorded!</h3>
+      <p class="text-muted mb-0" style="font-size:0.85rem;">Scan confirmed successfully</p>
+
+      <!-- Time + Date stamp -->
+      <div class="time-stamp-box">
+        <div class="time-big">
+          {{ scan_time_ist.strftime('%I:%M %p') if scan_time_ist else '—' }}
+        </div>
+        <div class="date-small">
+          {{ today.strftime('%A, %d %B %Y') }}
+        </div>
+      </div>
+
+      <!-- Student Profile Card -->
+      <div class="avatar-circle">
+        {{ student.user.name[0].upper() }}
+      </div>
+
+      <div class="text-start">
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-person-fill me-1"></i>Name</span>
+          <span class="profile-value">{{ student.user.name }}</span>
+        </div>
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-phone-fill me-1"></i>Phone</span>
+          <span class="profile-value">{{ student.user.phone }}</span>
+        </div>
+        {% if student.room_number %}
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-door-open-fill me-1"></i>Room</span>
+          <span class="profile-value">{{ student.room_number }}</span>
+        </div>
+        {% endif %}
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-calendar-check-fill me-1"></i>Subscription</span>
+          <span class="profile-value">
+            {% if student.subscription_status == 'active' %}
+              <span class="status-chip chip-active">
+                <i class="bi bi-check-circle-fill"></i> Active
+              </span>
+            {% else %}
+              <span class="status-chip chip-inactive">
+                <i class="bi bi-x-circle-fill"></i> {{ student.subscription_status | title }}
+              </span>
+            {% endif %}
+          </span>
+        </div>
+        {% if student.subscription_end %}
+        <div class="profile-row">
+          <span class="profile-label"><i class="bi bi-calendar3 me-1"></i>Valid Until</span>
+          <span class="profile-value">{{ student.subscription_end.strftime('%d %b %Y') }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <a href="{{ url_for('student.dashboard') }}" class="btn btn-gold w-100 mt-4">
+        <i class="bi bi-house-fill me-1"></i> Go to Dashboard
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- ── Subscription Alerts (below the card) ───────────── -->
+    {% if sub_state.warning_level is not none %}
+    <div class="mt-3" style="max-width:420px; margin:12px auto 0;">
+      {% if sub_state.days_remaining <= 0 %}
+      <div class="alert alert-danger d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0 mt-1"></i>
+        <div>
+          <strong>Subscription Expired!</strong><br>
+          Your plan ended on <strong>{{ sub_state.expiry_date.strftime('%d %B %Y') }}</strong>.
+          Renew now to keep accessing the mess.
+          <div class="mt-2">
+            <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-danger">
+              <i class="bi bi-arrow-clockwise me-1"></i> Renew Now
+            </a>
+          </div>
+        </div>
+      </div>
+      {% elif sub_state.warning_level == 1 %}
+      <div class="alert alert-warning d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-bell-fill fs-4 flex-shrink-0 mt-1 text-warning"></i>
+        <div>
+          <strong>Last Day Today!</strong><br>
+          Subscription expires <strong>{{ sub_state.expiry_date.strftime('%d %B %Y') }}</strong>. Renew today!
+          <div class="mt-2">
+            <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-warning text-dark">
+              <i class="bi bi-arrow-clockwise me-1"></i> Renew Now
+            </a>
+          </div>
+        </div>
+      </div>
+      {% elif sub_state.warning_level == 3 %}
+      <div class="alert alert-warning d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-bell fs-4 flex-shrink-0 mt-1 text-warning"></i>
+        <div>
+          <strong>Subscription Reminder</strong><br>
+          Expires in <strong>{{ sub_state.days_remaining }} day{{ 's' if sub_state.days_remaining != 1 }}</strong>
+          on <strong>{{ sub_state.expiry_date.strftime('%d %B %Y') }}</strong>.
+          <div class="mt-2">
+            <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-warning text-dark">
+              <i class="bi bi-arrow-clockwise me-1"></i> Renew Early
+            </a>
+          </div>
+        </div>
+      </div>
+      {% elif sub_state.warning_level == 7 %}
+      <div class="alert alert-info d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-info-circle fs-4 flex-shrink-0 mt-1 text-info"></i>
+        <div>
+          <strong>Subscription Notice</strong><br>
+          Your subscription will expire in <strong>{{ sub_state.days_remaining }} days</strong>
+          on <strong>{{ sub_state.expiry_date.strftime('%d %B %Y') }}</strong>.
+          <div class="mt-2">
+            <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-info">
+              <i class="bi bi-arrow-clockwise me-1"></i> View Options
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if sub_state.status == 'expired' and sub_state.warning_level is none %}
+    <div class="mt-3" style="max-width:420px; margin:12px auto 0;">
+      <div class="alert alert-danger d-flex align-items-start gap-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0 mt-1"></i>
+        <div>
+          <strong>No Active Subscription</strong><br>
+          Your subscription has expired. Renew now to access mess services.
+          <div class="mt-2">
+            <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-danger">
+              <i class="bi bi-calendar-plus me-1"></i> Renew Now
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

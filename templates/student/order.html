@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Place Order{% endblock %}
+{% block page_title %}Place Order{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Place Your <span class="text-gold">Order 🍽️</span></h2>
+    <p class="hero-sub">Today is <strong>{{ today.strftime('%A, %d %B %Y') }}</strong></p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-bag-plus-fill me-2"></i>Order a Meal</div>
+      <div class="mess-card-body">
+        {% if today_menu %}
+        <div class="menu-quick-ref mb-3">
+          <small class="text-muted">Today's menu</small>
+          <div class="d-flex gap-2 flex-wrap mt-1">
+            <span class="menu-pill">🌅 {{ today_menu.breakfast[:30] if today_menu.breakfast else '—' }}...</span>
+            <span class="menu-pill">☀️ {{ today_menu.lunch[:30] if today_menu.lunch else '—' }}...</span>
+            <span class="menu-pill">🌙 {{ today_menu.dinner[:30] if today_menu.dinner else '—' }}...</span>
+          </div>
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('student.order') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="meal-select-grid mb-3">
+            {% for meal, icon, cutoff, price in [('breakfast','🌅','8:30 AM','Included'),('lunch','☀️','11:30 AM','Included'),('dinner','🌙','6:30 PM','Included'),('tiffin','🥡','Anytime','₹50')] %}
+            <label class="meal-option-card {% if meal in ordered_meals %}meal-ordered{% endif %}">
+              <input type="radio" name="meal_type" value="{{ meal }}"
+                     {% if meal in ordered_meals %}disabled{% endif %} required />
+              <div class="meal-opt-icon">{{ icon }}</div>
+              <div class="meal-opt-name">{{ meal | title }}</div>
+              <div class="meal-opt-cutoff">Cutoff: {{ cutoff }}</div>
+              <div class="meal-opt-price text-gold fw-bold">{{ price }}</div>
+              {% if meal in ordered_meals %}
+                <div class="ordered-overlay">✅ Ordered</div>
+              {% endif %}
+            </label>
+            {% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Special Instructions (optional)</label>
+            <textarea class="form-control mess-input" name="notes" rows="2" placeholder="No spice, less salt, etc."></textarea>
+          </div>
+          <button type="submit" class="btn btn-gold w-100">
+            <i class="bi bi-bag-check-fill me-2"></i>Place Order
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-clock-history me-2"></i>Today's Orders</div>
+      <div class="mess-card-body">
+        {% if today_orders %}
+          {% for order in today_orders %}
+          <div class="order-item">
+            <div class="order-meal">
+              {{ {'breakfast':'🌅','lunch':'☀️','dinner':'🌙','tiffin':'🥡'}.get(order.meal_type,'🍽️') }}
+              {{ order.meal_type | title }}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="order-status status-{{ order.order_status }}">{{ order.order_status | title }}</span>
+              {% if order.order_status == 'pending' %}
+              <form method="POST" action="{{ url_for('student.cancel_order', order_id=order.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this order?')">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state"><i class="bi bi-bag-x fs-3"></i><p>No orders yet today.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+
+{% block content %}
+
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Manage <span class="text-gold">Students 👥</span></h2>
+    <p class="hero-sub">All accounts are admin-controlled — add, search, enable or disable students</p>
+  </div>
+  <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+    <i class="bi bi-person-plus-fill me-1"></i> Add Student
+  </button>
+</div>
+
+<!-- Search + Filter -->
+<div class="filter-bar mb-4">
+  <form method="GET" class="d-flex gap-2 flex-wrap">
+    <input type="text" class="form-control mess-input" style="max-width:280px;" name="search"
+           value="{{ search }}" placeholder="Search by name, phone, room..." />
+    <select name="status" class="form-select mess-input" style="max-width:160px;">
+      <option value="all"      {% if filter_status=='all'      %}selected{% endif %}>All Status</option>
+      <option value="active"   {% if filter_status=='active'   %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if filter_status=='inactive' %}selected{% endif %}>Inactive</option>
+      <option value="expired"  {% if filter_status=='expired'  %}selected{% endif %}>Expired</option>
+    </select>
+    <button class="btn btn-gold">Search</button>
+    {% if search or filter_status != 'all' %}
+    <a href="{{ url_for('admin.students') }}" class="btn btn-outline-secondary">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="mess-card">
+  <div class="mess-card-header">
+    <i class="bi bi-people-fill me-2"></i>
+    {{ students|length }} Student{{ 's' if students|length != 1 }} Found
+  </div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Phone</th><th>Room</th>
+            <th>Joined</th><th>Subscription</th><th>Account</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td class="fw-semibold">{{ s.user.name }}</td>
+            <td>{{ s.user.phone }}</td>
+            <td>{{ s.room_number or '—' }}</td>
+            <td>{{ s.join_date.strftime('%d %b %Y') }}</td>
+            <td>
+              <span class="status-badge status-{{ s.subscription_status }}">
+                {{ s.subscription_status | title }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge {% if s.user.is_active %}status-verified{% else %}status-rejected{% endif %}">
+                {{ 'Active' if s.user.is_active else 'Disabled' }}
+              </span>
+            </td>
+            <td>
+              <form method="POST"
+                    action="{{ url_for('admin.toggle_student', student_id=s.id) }}"
+                    onsubmit="return confirm('Toggle account for {{ s.user.name }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-sm {% if s.user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                  {{ 'Disable' if s.user.is_active else 'Enable' }}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="bi bi-person-x" style="font-size:2.5rem;opacity:0.4;"></i><br>
+              <span class="mt-2 d-inline-block">No students yet.</span><br>
+              <button class="btn btn-gold btn-sm mt-3"
+                      data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="bi bi-person-plus-fill me-1"></i> Add First Student
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Add Student Modal ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="addStudentModal" tabindex="-1"
+     aria-labelledby="addStudentLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content"
+         style="background:#1e1e2e;border:1.5px solid rgba(255,190,51,0.2);border-radius:18px;">
+
+      <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+        <h5 class="modal-title fw-bold" id="addStudentLabel" style="color:#ffbe33;">
+          <i class="bi bi-person-plus-fill me-2"></i>Add New Student
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <form method="POST" action="{{ url_for('admin.students') }}" autocomplete="off" id="add-student-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="modal-body">
+          <div class="row g-3">
+
+            <!-- Name -->
+            <div class="col-12">
+              <label class="form-label text-muted small mb-1">
+                Full Name <span class="text-danger">*</span>
+              </label>
+              <input type="text" name="name" class="form-control auth-input"
+                     placeholder="e.g. Venkat Kumar"
+                     required minlength="2" maxlength="100" autocomplete="off" />
+            </div>
+
+            <!-- Phone + Room -->
+            <div class="col-md-6">
+              <label class="form-label text-muted small mb-1">
+                Phone Number <span class="text-danger">*</span>
+              </label>
+              <input type="tel" name="phone" class="form-control auth-input"
+                     placeholder="10-digit mobile"
+                     required pattern="[6-9][0-9]{9}" maxlength="10"
+                     inputmode="numeric" autocomplete="off" />
+              <div class="form-text" style="font-size:0.72rem;color:#6b7280;">
+                Indian mobile · starts with 6-9
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small mb-1">Room Number</label>
+              <input type="text" name="room_number" class="form-control auth-input"
+                     placeholder="e.g. B-204"
+                     maxlength="20" autocomplete="off" />
+            </div>
+
+            <!-- Email (optional) -->
+            <div class="col-12">
+              <label class="form-label text-muted small mb-1">
+                Email <span class="text-muted">(optional)</span>
+              </label>
+              <input type="email" name="email" class="form-control auth-input"
+                     placeholder="student@example.com"
+                     maxlength="120" autocomplete="off" />
+            </div>
+
+            <!-- Temp Password -->
+            <div class="col-12">
+              <label class="form-label text-muted small mb-1">
+                Temporary Password <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <input type="text" name="password" id="tmp-password"
+                       class="form-control auth-input"
+                       placeholder="Set a temporary password"
+                       required minlength="6" maxlength="50" autocomplete="off" />
+                <button type="button" class="btn btn-outline-secondary"
+                        onclick="generatePassword()" title="Auto-generate">
+                  <i class="bi bi-shuffle"></i>
+                </button>
+              </div>
+              <div class="form-text" style="font-size:0.72rem;color:#6b7280;">
+                <i class="bi bi-info-circle me-1"></i>
+                Share this with the student. Min 6 characters.
+              </div>
+            </div>
+
+          </div><!-- /row -->
+        </div><!-- /modal-body -->
+
+        <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.07);">
+          <button type="button" class="btn btn-outline-secondary"
+                  data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold" id="add-student-btn">
+            <i class="bi bi-person-check-fill me-1"></i> Create Account
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function generatePassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+  let pwd = '';
+  for (let i = 0; i < 8; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById('tmp-password').value = pwd;
+  document.getElementById('tmp-password').type = 'text';
+}
+
+document.getElementById('add-student-form').addEventListener('submit', function () {
+  const btn = document.getElementById('add-student-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Creating...';
+});
+</script>
+{% endblock %}

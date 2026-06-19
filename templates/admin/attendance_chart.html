@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}Attendance Chart{% endblock %}
+{% block page_title %}Daily Attendance Chart{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Attendance <span class="text-gold">Chart 📊</span></h2>
+    <p class="hero-sub">Last 30 days — Click any bar to download that day's Excel</p>
+  </div>
+  <a href="{{ url_for('admin.qr_display') }}" class="btn btn-gold-outline">
+    <i class="bi bi-qr-code me-1"></i> QR Display
+  </a>
+</div>
+
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+  {% set total_scans = chart_data | sum(attribute='total') %}
+  {% set max_day = chart_data | max(attribute='total') %}
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-gold">
+      <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+      <div class="stat-value">{{ total_scans }}</div>
+      <div class="stat-label">Total Scans (30d)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-success">
+      <div class="stat-icon"><i class="bi bi-sunrise-fill"></i></div>
+      <div class="stat-value">{{ chart_data | sum(attribute='breakfast') }}</div>
+      <div class="stat-label">Breakfast Scans</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-sun-fill"></i></div>
+      <div class="stat-value">{{ chart_data | sum(attribute='lunch') }}</div>
+      <div class="stat-label">Lunch Scans</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-warn">
+      <div class="stat-icon"><i class="bi bi-moon-stars-fill"></i></div>
+      <div class="stat-value">{{ chart_data | sum(attribute='dinner') }}</div>
+      <div class="stat-label">Dinner Scans</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bar Chart -->
+<div class="mess-card mb-4">
+  <div class="mess-card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-bar-chart-fill me-2"></i>Daily QR Scan Count — Last 30 Days</span>
+    <small class="text-muted"><i class="bi bi-hand-index me-1"></i>Click a bar to download that day's Excel</small>
+  </div>
+  <div class="mess-card-body">
+    <canvas id="attendanceChart" height="120"></canvas>
+  </div>
+</div>
+
+<!-- Per-Day Download Table -->
+<div class="mess-card">
+  <div class="mess-card-header"><i class="bi bi-table me-2"></i>Per-Day Download</div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th class="text-center">Breakfast</th>
+            <th class="text-center">Lunch</th>
+            <th class="text-center">Dinner</th>
+            <th class="text-center">Total</th>
+            <th>Download Excel</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for day in chart_data | reverse %}
+          <tr>
+            <td class="fw-semibold">{{ day.label }}</td>
+            <td class="text-center"><span class="badge" style="background:#f59e0b">{{ day.breakfast }}</span></td>
+            <td class="text-center"><span class="badge bg-primary">{{ day.lunch }}</span></td>
+            <td class="text-center"><span class="badge bg-info text-dark">{{ day.dinner }}</span></td>
+            <td class="text-center"><strong>{{ day.total }}</strong></td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if day.total > 0 %}
+                <a href="{{ url_for('admin.attendance_export', date_str=day.date, meal_session='all') }}"
+                   class="btn btn-sm btn-gold-outline" id="dl-all-{{ day.date }}">
+                  <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>All
+                </a>
+                {% for meal in ['breakfast','lunch','dinner'] %}
+                {% if day[meal] > 0 %}
+                <a href="{{ url_for('admin.attendance_export', date_str=day.date, meal_session=meal) }}"
+                   class="btn btn-sm btn-outline-secondary" id="dl-{{ meal }}-{{ day.date }}">
+                  {{ meal[:1].upper() }}
+                </a>
+                {% endif %}
+                {% endfor %}
+                {% else %}
+                <span class="text-muted small">No scans</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chartData = {{ chart_data | tojson }};
+const labels = chartData.map(d => d.label);
+const breakfast = chartData.map(d => d.breakfast);
+const lunch = chartData.map(d => d.lunch);
+const dinner = chartData.map(d => d.dinner);
+const dates = chartData.map(d => d.date);
+
+const ctx = document.getElementById('attendanceChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Breakfast',
+        data: breakfast,
+        backgroundColor: 'rgba(245,158,11,0.85)',
+        borderColor: '#f59e0b',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+      {
+        label: 'Lunch',
+        data: lunch,
+        backgroundColor: 'rgba(99,102,241,0.85)',
+        borderColor: '#6366f1',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+      {
+        label: 'Dinner',
+        data: dinner,
+        backgroundColor: 'rgba(34,211,238,0.7)',
+        borderColor: '#22d3ee',
+        borderWidth: 1,
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#ccc' } },
+      tooltip: {
+        callbacks: {
+          footer: (items) => {
+            const total = items.reduce((s, i) => s + i.parsed.y, 0);
+            return `Total: ${total} scans — Click to download`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        stacked: true,
+        ticks: { color: '#aaa', maxRotation: 45 },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { color: '#aaa', stepSize: 1 },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
+    },
+    onClick: (event, elements) => {
+      if (elements.length > 0) {
+        const idx = elements[0].index;
+        const dateStr = dates[idx];
+        const meal = ['breakfast','lunch','dinner'][elements[0].datasetIndex];
+        // Download that meal's Excel
+        window.location.href = `/admin/attendance/export/${dateStr}/${meal}`;
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

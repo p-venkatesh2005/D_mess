@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}QR Attendance{% endblock %}
+
+{% block head %}
+<style>
+.qr-hero {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  border: 2px solid rgba(255,190,51,0.25);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.qr-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(ellipse at center, rgba(255,190,51,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+.qr-img-wrapper {
+  display: inline-block;
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin: 24px auto;
+  position: relative;
+}
+.qr-img-wrapper img {
+  display: block;
+  width: 280px;
+  height: 280px;
+  border-radius: 8px;
+}
+.qr-pulse {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 8px 32px rgba(255,190,51,0.2); }
+  50%       { box-shadow: 0 8px 48px rgba(255,190,51,0.55); }
+}
+.meal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.4px;
+}
+.meal-badge.active   { background: rgba(34,197,94,0.2);  color: #4ade80; border: 1px solid rgba(34,197,94,0.4); }
+.meal-badge.upcoming { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+.meal-badge.done     { background: rgba(100,100,100,0.15);color: #888;    border: 1px solid rgba(100,100,100,0.3); }
+.scan-count-bar {
+  background: rgba(255,190,51,0.08);
+  border-radius: 12px;
+  padding: 16px 24px;
+  border: 1px solid rgba(255,190,51,0.15);
+}
+.token-box {
+  font-family: monospace;
+  font-size: 0.78rem;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #6b7280;
+  word-break: break-all;
+  user-select: all;
+}
+</style>
+{% endblock %}
+
+{% block page_title %}QR Attendance{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Mess Attendance <span class="text-gold">QR 📷</span></h2>
+    <p class="hero-sub">{{ today.strftime('%A, %d %B %Y') }} — One QR for all meals</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('admin.attendance_export') }}" class="btn btn-gold">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel (Last 30 Days)
+    </a>
+    <a href="{{ url_for('admin.attendance_chart') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-bar-chart-fill me-1"></i> View Chart
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- QR Code -->
+  <div class="col-lg-6">
+    <div class="qr-hero">
+      <div class="mb-3">
+        <span class="badge" style="background:rgba(255,190,51,0.15);color:#ffbe33;border:1px solid rgba(255,190,51,0.3);font-size:0.85rem;padding:6px 14px;border-radius:20px;">
+          <i class="bi bi-calendar3 me-1"></i> {{ today.strftime('%d %B %Y') }}
+        </span>
+      </div>
+
+      <h3 class="fw-bold mb-1" style="color:#fff;">Universal Mess QR</h3>
+      <p style="color:#9ca3af;font-size:0.9rem;">Display this at the stall. Valid for today only. Refreshes at midnight.</p>
+
+      <div class="qr-img-wrapper qr-pulse">
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="Mess Attendance QR Code" />
+      </div>
+
+      <!-- Meal time guide -->
+      <div class="d-flex justify-content-center gap-2 flex-wrap mb-4">
+        <span class="meal-badge {{ 'active' if today_meal == 'breakfast' else ('done' if today_meal in ['lunch','dinner'] else 'upcoming') }}">
+          🌅 Breakfast <small>5–11 AM</small>
+        </span>
+        <span class="meal-badge {{ 'active' if today_meal == 'lunch' else ('done' if today_meal == 'dinner' else 'upcoming') }}">
+          ☀️ Lunch <small>11 AM–4 PM</small>
+        </span>
+        <span class="meal-badge {{ 'active' if today_meal == 'dinner' else 'upcoming' }}">
+          🌙 Dinner <small>4–11 PM</small>
+        </span>
+      </div>
+
+      <p class="text-muted small mb-3">
+        <i class="bi bi-info-circle me-1"></i>
+        Meal is auto-detected when student scans. No separate QR per meal needed.
+      </p>
+
+      <!-- Token (for manual URL sharing / testing) -->
+      <div class="token-box mt-2">
+        Token: {{ token }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Stats -->
+  <div class="col-lg-6">
+
+    <!-- Scan Count Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="stat-card stat-gold">
+          <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+          <div class="stat-value">{{ meal_counts.total }}</div>
+          <div class="stat-label">Total Scans Today</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="scan-count-bar text-center">
+          <div style="font-size:1.6rem;">🌅</div>
+          <div class="fw-bold fs-5">{{ meal_counts.breakfast }}</div>
+          <div class="text-muted small">Breakfast</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="scan-count-bar text-center">
+          <div style="font-size:1.6rem;">☀️</div>
+          <div class="fw-bold fs-5">{{ meal_counts.lunch }}</div>
+          <div class="text-muted small">Lunch</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="scan-count-bar text-center">
+          <div style="font-size:1.6rem;">🌙</div>
+          <div class="fw-bold fs-5">{{ meal_counts.dinner }}</div>
+          <div class="text-muted small">Dinner</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-info-circle-fill me-2"></i>How It Works</div>
+      <div class="mess-card-body">
+        <div class="d-flex gap-3 mb-3 align-items-start">
+          <div style="font-size:1.5rem; flex-shrink:0;">1️⃣</div>
+          <div>
+            <div class="fw-semibold">Admin displays this QR at the stall</div>
+            <small class="text-muted">Print it or show it on a screen. It refreshes automatically at midnight.</small>
+          </div>
+        </div>
+        <div class="d-flex gap-3 mb-3 align-items-start">
+          <div style="font-size:1.5rem; flex-shrink:0;">2️⃣</div>
+          <div>
+            <div class="fw-semibold">Student scans with their phone</div>
+            <small class="text-muted">Opens the app → student must be logged in. Works for any meal.</small>
+          </div>
+        </div>
+        <div class="d-flex gap-3 mb-3 align-items-start">
+          <div style="font-size:1.5rem; flex-shrink:0;">3️⃣</div>
+          <div>
+            <div class="fw-semibold">Meal auto-detected from time of scan</div>
+            <small class="text-muted">5–11 AM → Breakfast · 11 AM–4 PM → Lunch · 4–11 PM → Dinner</small>
+          </div>
+        </div>
+        <div class="d-flex gap-3 align-items-start">
+          <div style="font-size:1.5rem; flex-shrink:0;">4️⃣</div>
+          <div>
+            <div class="fw-semibold">Excel report auto-generated</div>
+            <small class="text-muted">Each export = one sheet per day, with inactive students in red.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export with date range -->
+    <div class="mess-card mt-4">
+      <div class="mess-card-header"><i class="bi bi-download me-2"></i>Custom Date Export</div>
+      <div class="mess-card-body">
+        <form method="GET" action="{{ url_for('admin.attendance_export') }}" class="row g-2">
+          <div class="col-6">
+            <label class="form-label small text-muted mb-1">From</label>
+            <input type="date" name="from" class="form-control auth-input"
+                   value="{{ (today - timedelta(days=29)).isoformat() if today else '' }}" max="{{ today.isoformat() }}" />
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted mb-1">To</label>
+            <input type="date" name="to" class="form-control auth-input"
+                   value="{{ today.isoformat() }}" max="{{ today.isoformat() }}" />
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-gold w-100">
+              <i class="bi bi-file-earmark-excel-fill me-1"></i> Download Excel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh page every 60 seconds to update scan counts
+setTimeout(() => window.location.reload(), 60000);
+</script>
+{% endblock %}

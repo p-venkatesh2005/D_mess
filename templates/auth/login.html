@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  {% set role = request.args.get('role', 'student') %}
+
+  {% if role == 'hostler' %}
+    {% set role_label = 'Hostler Portal' %}
+    {% set role_icon  = 'bi-house-door-fill' %}
+    {% set role_desc  = 'Access food menus, file complaints, and browse room listings.' %}
+    {% set pill_class = 'pill-hostler' %}
+    {% set emoji      = '🏠' %}
+  {% elif role == 'admin' %}
+    {% set role_label = 'Admin Access' %}
+    {% set role_icon  = 'bi-shield-lock-fill' %}
+    {% set role_desc  = 'Manage students, attendance, payments, menus and reports.' %}
+    {% set pill_class = 'pill-admin' %}
+    {% set emoji      = '🔒' %}
+  {% else %}
+    {% set role_label = 'Student Portal' %}
+    {% set role_icon  = 'bi-person-fill' %}
+    {% set role_desc  = 'View menus, scan QR for meals, request leave and manage your account.' %}
+    {% set pill_class = 'pill-student' %}
+    {% set emoji      = '🎓' %}
+  {% endif %}
+
+  <title>{{ role_label }} Login | Dwaraka Mess</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+  <!-- Prevent this page from being cached by browser -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <style>
+    .role-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 16px; border-radius: 30px;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.4px;
+      margin-bottom: 12px;
+    }
+    .pill-student { background: rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); }
+    .pill-hostler { background: rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); }
+    .pill-admin   { background: rgba(239,68,68,0.12);  color:#f87171; border:1px solid rgba(239,68,68,0.25);}
+    .portal-switcher { display:flex; justify-content:center; gap:8px; margin-top:20px; flex-wrap:wrap; }
+    .portal-switch-btn {
+      padding: 5px 14px; border-radius: 20px; font-size:0.78rem; font-weight:600;
+      text-decoration:none; border: 1px solid rgba(255,255,255,0.15);
+      color: #aaa; transition: all 0.2s;
+    }
+    .portal-switch-btn:hover, .portal-switch-btn.active {
+      border-color: var(--gold); color: var(--gold);
+    }
+    .back-link {
+      display:inline-flex; align-items:center; gap:6px;
+      color:var(--text-muted); text-decoration:none; font-size:0.85rem;
+      margin-bottom:20px; transition:color 0.2s;
+    }
+    .back-link:hover { color: var(--gold); }
+  </style>
+</head>
+<body class="auth-bg">
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <!-- Back to home -->
+    <a href="{{ url_for('index') }}" class="back-link">
+      <i class="bi bi-arrow-left"></i> Back to home
+    </a>
+
+    <!-- Brand + Role pill -->
+    <div class="auth-brand">
+      <span class="auth-icon">{{ emoji }}</span>
+      <h1 class="auth-title">Dwaraka Mess</h1>
+      <div class="role-pill {{ pill_class }}">
+        <i class="bi {{ role_icon }}"></i> {{ role_label }}
+      </div>
+      <p class="auth-subtitle">{{ role_desc }}</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category=='success' else 'danger' if category=='danger' else 'warning' if category=='warning' else 'info' }} alert-dismissible fade show" role="alert">
+            {{ message | safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Login Form -->
+    <!--
+      autocomplete="off" on the form prevents browser from auto-filling
+      credentials from a different session/role.
+      The hidden role_hint field lets the server warn if wrong-portal
+      credentials are entered.
+    -->
+    <form method="POST"
+          action="{{ url_for('auth.login', role=role) }}"
+          class="auth-form"
+          autocomplete="off"
+          id="login-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="role_hint" value="{{ role }}" />
+
+      <div class="form-floating mb-3">
+        <input type="tel"
+               class="form-control auth-input"
+               id="phone"
+               name="phone"
+               placeholder="Phone Number"
+               required
+               maxlength="10"
+               inputmode="numeric"
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false" />
+        <label for="phone"><i class="bi bi-phone-fill me-2"></i>Phone Number</label>
+      </div>
+
+      <div class="form-floating mb-4">
+        <input type="password"
+               class="form-control auth-input"
+               id="password"
+               name="password"
+               placeholder="Password"
+               required
+               autocomplete="new-password" />
+        <label for="password"><i class="bi bi-lock-fill me-2"></i>Password</label>
+      </div>
+
+      <button type="submit" class="btn btn-gold w-100 auth-btn" id="login-btn">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Login as {{ role_label }}
+      </button>
+    </form>
+
+    <!-- Switch portal links -->
+    <div class="portal-switcher mt-3">
+      <span class="text-muted" style="font-size:0.78rem; align-self:center;">Switch portal:</span>
+      <a href="{{ url_for('auth.login', role='student') }}"
+         class="portal-switch-btn {% if role=='student' %}active{% endif %}">
+        🎓 Student
+      </a>
+      <a href="{{ url_for('auth.login', role='hostler') }}"
+         class="portal-switch-btn {% if role=='hostler' %}active{% endif %}">
+        🏠 Hostler
+      </a>
+      <a href="{{ url_for('auth.login', role='admin') }}"
+         class="portal-switch-btn {% if role=='admin' %}active{% endif %}">
+        🔒 Admin
+      </a>
+    </div>
+
+    <!-- Footer note — accounts are admin-created -->
+    <div class="auth-footer mt-3">
+      <p class="text-muted small">
+        <i class="bi bi-info-circle me-1"></i>
+        Accounts are created by the mess admin.<br>
+        Contact admin for your login credentials.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Clear fields immediately on page load — prevents browser
+  // from showing credentials from a previous session/role
+  window.addEventListener('DOMContentLoaded', () => {
+    const phone = document.getElementById('phone');
+    const pass  = document.getElementById('password');
+    // Small delay so browser autofill runs first, then we clear it
+    setTimeout(() => {
+      if (phone) phone.value = '';
+      if (pass)  pass.value  = '';
+    }, 50);
+  });
+
+  // Disable the login button after submit to prevent double-submit
+  document.getElementById('login-form').addEventListener('submit', function() {
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Logging in...';
+  });
+</script>
+</body>
+</html>

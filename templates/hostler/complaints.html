@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}My Complaints{% endblock %}
+{% block page_title %}Complaints{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">My <span class="text-gold">Complaints 📝</span></h2>
+    <p class="hero-sub">Report food or facility issues — reviewed by admin</p>
+  </div>
+</div>
+
+<!-- File Complaint Form -->
+<div class="mess-card mb-4">
+  <div class="mess-card-header"><i class="bi bi-exclamation-triangle-fill me-2"></i>File a New Complaint</div>
+  <div class="mess-card-body">
+    <form method="POST" action="{{ url_for('hostler.complaints') }}" id="complaint-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Category</label>
+          <select name="meal_type" class="form-select" id="complaint-category">
+            <option value="general">General / Facility</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Describe Your Complaint *</label>
+          <textarea name="message" class="form-control" rows="4"
+                    placeholder="Describe the issue in detail — e.g. food quality, hygiene, late service..."
+                    required id="complaint-message"></textarea>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-gold" id="submit-complaint-btn">
+            <i class="bi bi-send-fill me-1"></i> Submit Complaint
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Past Complaints -->
+<div class="mess-card">
+  <div class="mess-card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-list-ul me-2"></i>My Complaints ({{ my_complaints|length }})</span>
+  </div>
+  <div class="mess-card-body p-0">
+    {% if my_complaints %}
+    <div class="table-responsive">
+      <table class="table mess-table mb-0 align-middle">
+        <thead>
+          <tr><th>Date</th><th>Category</th><th>Complaint</th></tr>
+        </thead>
+        <tbody>
+          {% for c in my_complaints %}
+          <tr>
+            <td><small class="text-muted">{{ c.created_at.strftime('%d %b %Y %H:%M') }}</small></td>
+            <td>
+              <span class="badge bg-secondary">{{ c.meal_type | title if c.meal_type else 'General' }}</span>
+            </td>
+            <td>{{ c.message or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-5">
+      <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
+      <p>No complaints submitted yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

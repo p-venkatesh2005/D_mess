@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Room Listings — Admin{% endblock %}
+{% block page_title %}Room Listings{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Room <span class="text-gold">Listings 🏠</span></h2>
+    <p class="hero-sub">Post room-for-rent suggestions for mess students</p>
+  </div>
+</div>
+
+<!-- Add Room Form -->
+<div class="mess-card mb-4">
+  <div class="mess-card-header"><i class="bi bi-plus-circle-fill me-2"></i>Post New Room Listing</div>
+  <div class="mess-card-body">
+    <form method="POST" action="{{ url_for('admin.rooms') }}" id="add-room-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="add" />
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Room Title *</label>
+          <input type="text" name="title" class="form-control" placeholder="e.g. 2BHK near mess, Opp Gate 2" required id="room-title" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Rent / Month (₹) *</label>
+          <input type="number" name="rent_per_month" class="form-control" placeholder="e.g. 4500" min="1" required id="room-rent" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Contact Phone</label>
+          <input type="text" name="contact_phone" class="form-control" placeholder="Owner phone" id="room-phone" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Address / Location</label>
+          <input type="text" name="address" class="form-control" placeholder="Full address or landmark" id="room-address" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Contact Name</label>
+          <input type="text" name="contact_name" class="form-control" placeholder="Owner / agent name" id="room-contact-name" />
+        </div>
+        <div class="col-12">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3"
+                    placeholder="Amenities, furnishing details, rules, etc." id="room-description"></textarea>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-gold" id="post-room-btn">
+            <i class="bi bi-house-add-fill me-1"></i> Post Listing
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Room Listings Table -->
+<div class="mess-card">
+  <div class="mess-card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-building me-2"></i>{{ listings|length }} Room Listing{{ 's' if listings|length != 1 else '' }}</span>
+    <span class="badge bg-success">{{ listings|selectattr('is_available')|list|length }} Available</span>
+  </div>
+  <div class="mess-card-body p-0">
+    {% if listings %}
+    <div class="row g-3 p-3">
+      {% for room in listings %}
+      <div class="col-md-6">
+        <div class="mess-card h-100" style="border: 1px solid {% if room.is_available %}rgba(34,197,94,0.3){% else %}rgba(239,68,68,0.3){% endif %};">
+          <div class="mess-card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h5 class="fw-bold mb-0">{{ room.title }}</h5>
+              <span class="badge {% if room.is_available %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if room.is_available %}Available{% else %}Taken{% endif %}
+              </span>
+            </div>
+            <div class="text-gold fw-bold fs-5 mb-2">₹{{ "%.0f"|format(room.rent_per_month) }} / month</div>
+            {% if room.address %}
+            <p class="text-muted small mb-1"><i class="bi bi-geo-alt me-1"></i>{{ room.address }}</p>
+            {% endif %}
+            {% if room.description %}
+            <p class="text-muted small mb-2">{{ room.description }}</p>
+            {% endif %}
+            {% if room.contact_name or room.contact_phone %}
+            <p class="small mb-2">
+              <i class="bi bi-person me-1"></i>
+              {{ room.contact_name or '—' }}
+              {% if room.contact_phone %}· <i class="bi bi-telephone me-1"></i>{{ room.contact_phone }}{% endif %}
+            </p>
+            {% endif %}
+            <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>Posted {{ room.created_at.strftime('%d %b %Y') }}</small>
+            <div class="d-flex gap-2 mt-3">
+              <form method="POST" action="{{ url_for('admin.rooms') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="toggle" />
+                <input type="hidden" name="listing_id" value="{{ room.id }}" />
+                <button type="submit" class="btn btn-sm btn-outline-secondary" id="toggle-room-{{ room.id }}">
+                  {% if room.is_available %}
+                    <i class="bi bi-x-circle me-1"></i>Mark Taken
+                  {% else %}
+                    <i class="bi bi-check-circle me-1"></i>Mark Available
+                  {% endif %}
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.rooms') }}"
+                    onsubmit="return confirm('Delete this listing?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="listing_id" value="{{ room.id }}" />
+                <button type="submit" class="btn btn-sm btn-outline-danger" id="delete-room-{{ room.id }}">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state py-5">
+      <i class="bi bi-house-door fs-1 d-block mb-2"></i>
+      <p>No room listings yet. Post one above to help students find accommodation.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

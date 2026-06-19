@@ -1,0 +1,522 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero Welcome Banner -->
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Hello, <span class="text-gold">{{ current_user.name }}!</span> 👋</h2>
+    <p class="hero-sub">Here's your mess overview for today — <strong>{{ today.strftime('%A, %d %B %Y') }}</strong></p>
+  </div>
+  {% if active_leave %}
+    <span class="badge badge-on-leave pulse-badge">🌴 On Leave</span>
+  {% elif student.subscription_status == 'active' %}
+    <span class="badge badge-active-sub">✅ Subscription Active</span>
+  {% else %}
+    <span class="badge badge-inactive-sub">⚠️ No Subscription</span>
+  {% endif %}
+</div>
+
+<!-- Subscription expiry warning banner -->
+{% if sub_state.warning_level is not none %}
+  {% if sub_state.days_remaining <= 0 %}
+  <div class="alert alert-danger d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+    <div><strong>Subscription Expired!</strong> Renew immediately to continue using mess services.
+      <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-danger ms-2">Renew Now</a></div>
+  </div>
+  {% elif sub_state.warning_level == 1 %}
+  <div class="alert alert-danger d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+    <div><strong>⚠️ Last Day!</strong> Your subscription expires today. Renew now to avoid service interruption.
+      <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-danger ms-2">Renew Today</a></div>
+  </div>
+  {% elif sub_state.warning_level == 3 %}
+  <div class="alert alert-warning d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="bi bi-bell-fill fs-4"></i>
+    <div><strong>Reminder:</strong> Your subscription expires in <strong>{{ sub_state.days_remaining }} day{{ 's' if sub_state.days_remaining != 1 else '' }}</strong>.
+      <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-warning text-dark ms-2">Renew</a></div>
+  </div>
+  {% elif sub_state.warning_level == 7 %}
+  <div class="alert alert-info d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="bi bi-info-circle-fill fs-4"></i>
+    <div><strong>ℹ️ Heads Up:</strong> Your subscription will expire in <strong>{{ sub_state.days_remaining }} days</strong> ({{ sub_state.expiry_date.strftime('%d %b %Y') }}).
+      <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-info ms-2">Learn More</a></div>
+  </div>
+  {% endif %}
+{% elif sub_state.status == 'expired' %}
+  <div class="alert alert-danger d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+    <div><strong>❌ Subscription Expired!</strong> Your subscription ended on {{ sub_state.expiry_date.strftime('%d %b %Y') }}.
+      <a href="{{ url_for('student.subscribe') }}" class="btn btn-sm btn-danger ms-2">Renew Now</a></div>
+  </div>
+{% endif %}
+
+<!-- Stats Cards Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-gold">
+      <div class="stat-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="stat-value">{{ 'Active' if student.subscription_status == 'active' else 'Inactive' }}</div>
+      <div class="stat-label">Subscription</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-bag-fill"></i></div>
+      <div class="stat-value">{{ today_orders|length }}</div>
+      <div class="stat-label">Today's Orders</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-warn">
+      <div class="stat-icon"><i class="bi bi-credit-card-fill"></i></div>
+      <div class="stat-value">{{ pending_payments }}</div>
+      <div class="stat-label">Pending Payments</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-success">
+      <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-value">{{ 'Eating' if today_attendance and today_attendance.status == 'eating' else 'Not Marked' }}</div>
+      <div class="stat-label">Today's Status</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TODAY'S QR SCAN STATUS ══════════════════════════════════════════ -->
+<div class="mess-card mb-4">
+  <div class="mess-card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-qr-code me-2"></i>Today's Meal Attendance (QR Scan)</span>
+    <button class="btn btn-gold btn-sm" id="open-scanner-btn" onclick="openScanner()">
+      <i class="bi bi-camera-fill me-1"></i> Scan QR Now
+    </button>
+  </div>
+  <div class="mess-card-body">
+    <div class="row g-3 mb-3">
+      {% for meal, icon, time in [
+            ('breakfast', 'bi-sunrise-fill', '7–9 AM'),
+            ('lunch',     'bi-sun-fill',     '12–2 PM'),
+            ('dinner',    'bi-moon-stars-fill','7–9 PM')
+         ] %}
+      {% set scanned = today_scans.get(meal, False) %}
+      <div class="col-4">
+        <div class="text-center p-3 rounded-3 {{ 'scan-done' if scanned else 'scan-pending' }}">
+          <i class="bi {{ icon }} fs-3 mb-1 d-block"></i>
+          <div class="fw-bold text-capitalize">{{ meal }}</div>
+          <small class="d-block text-muted">{{ time }}</small>
+          <div class="mt-2">
+            {% if scanned %}
+              <span class="badge bg-success px-2 py-1"><i class="bi bi-check-lg me-1"></i>Scanned</span>
+            {% else %}
+              <span class="badge bg-secondary px-2 py-1"><i class="bi bi-clock me-1"></i>Not yet</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- How it works info -->
+    <div class="alert alert-info py-2 mb-0 d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-info-circle-fill"></i>
+      <span class="small">
+        <strong>How to scan:</strong> Click <em>"Scan QR Now"</em> above to use your camera, 
+        OR point your phone camera at the QR code displayed at the mess stall.
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ QR SCANNER MODAL ═════════════════════════════════════════════════ -->
+<div class="modal fade" id="scannerModal" tabindex="-1" aria-labelledby="scannerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: #1a1a2e; border: 1px solid rgba(255,190,51,0.3);">
+      <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <h5 class="modal-title text-gold" id="scannerModalLabel"><i class="bi bi-qr-code me-2"></i>Scan Meal QR Code</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopScanner()"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Tabs: Camera / Upload -->
+        <ul class="nav nav-tabs mb-3" id="scannerTabs" style="border-bottom-color: rgba(255,255,255,0.15);">
+          <li class="nav-item">
+            <button class="nav-link active" id="cam-tab" onclick="switchTab('camera')"
+                    style="color:#aaa; background:none; border-color:transparent;">
+              <i class="bi bi-camera-fill me-1"></i>Camera
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="upload-tab" onclick="switchTab('upload')"
+                    style="color:#aaa; background:none; border-color:transparent;">
+              <i class="bi bi-upload me-1"></i>Upload Image
+            </button>
+          </li>
+        </ul>
+
+        <!-- Camera Panel -->
+        <div id="camera-panel" class="text-center">
+          <p class="text-muted small mb-3">Point your camera at the QR code displayed at the mess stall.</p>
+          <div class="position-relative d-inline-block">
+            <video id="scanner-video" width="100%" style="max-width:320px; border-radius:12px; border:2px solid rgba(255,190,51,0.5);" autoplay playsinline></video>
+            <canvas id="scanner-canvas" style="display:none;"></canvas>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:180px;height:180px;border:3px solid #ffbe33;border-radius:12px;pointer-events:none;"></div>
+          </div>
+          <div id="scanner-status" class="mt-3 text-muted small">Starting camera...</div>
+        </div>
+
+        <!-- Upload Panel -->
+        <div id="upload-panel" style="display:none;" class="text-center">
+          <p class="text-muted small mb-3">
+            Take a screenshot of the QR code from <strong>/admin/qr-display</strong> and upload it here.
+          </p>
+          <label for="qr-upload-input" class="btn btn-gold-outline w-100 mb-3" style="cursor:pointer;">
+            <i class="bi bi-image-fill me-2"></i>Choose QR Image
+          </label>
+          <input type="file" id="qr-upload-input" accept="image/*" style="display:none;" onchange="decodeUploadedQR(event)" />
+          <canvas id="upload-canvas" style="display:none;"></canvas>
+          <div id="upload-preview" class="mb-3" style="display:none;">
+            <img id="upload-preview-img" style="max-width:200px; border-radius:8px; border:2px solid rgba(255,190,51,0.4);" />
+          </div>
+          <div id="upload-status" class="text-muted small"></div>
+        </div>
+
+        <!-- Shared result area -->
+        <div id="scanner-result" class="mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.1);">
+        <button type="button" class="btn btn-outline-warning btn-sm" onclick="flipCamera()" id="camera-flip-btn">
+          <i class="bi bi-arrow-repeat me-1"></i><span id="flip-btn-label">Use Front Cam</span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="stopScanner()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Today's Menu -->
+  <div class="col-lg-5">
+    <div class="mess-card">
+      <div class="mess-card-header">
+        <i class="bi bi-journal-richtext me-2"></i>Today's Menu
+      </div>
+      <div class="mess-card-body">
+        {% if menu %}
+          {% if menu.special %}
+            <div class="special-badge mb-2">🌟 {{ menu.special }}</div>
+          {% endif %}
+          <div class="meal-item">
+            <div class="meal-badge breakfast-badge"><i class="bi bi-sunrise-fill"></i> Breakfast</div>
+            <div class="meal-time">7:00 AM – 9:00 AM</div>
+            <p class="meal-text">{{ menu.breakfast or 'Not set' }}</p>
+          </div>
+          <div class="meal-item">
+            <div class="meal-badge lunch-badge"><i class="bi bi-sun-fill"></i> Lunch</div>
+            <div class="meal-time">12:00 PM – 2:00 PM</div>
+            <p class="meal-text">{{ menu.lunch or 'Not set' }}</p>
+          </div>
+          <div class="meal-item">
+            <div class="meal-badge dinner-badge"><i class="bi bi-moon-stars-fill"></i> Dinner</div>
+            <div class="meal-time">7:00 PM – 9:00 PM</div>
+            <p class="meal-text">{{ menu.dinner or 'Not set' }}</p>
+          </div>
+        {% else %}
+          <div class="empty-state"><i class="bi bi-journal-x"></i><p>No menu for today yet.</p></div>
+        {% endif %}
+        <a href="{{ url_for('student.menu') }}" class="btn btn-gold-outline w-100 mt-3">View Full Weekly Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Announcements + Quick Actions -->
+  <div class="col-lg-7">
+    <!-- Quick Actions -->
+    <div class="mess-card mb-4">
+      <div class="mess-card-header"><i class="bi bi-lightning-charge-fill me-2"></i>Quick Actions</div>
+      <div class="mess-card-body">
+        <div class="quick-actions-grid">
+          <button class="quick-action-btn" onclick="openScanner()" id="quick-scan">
+            <i class="bi bi-qr-code-scan"></i>
+            <span>Scan QR</span>
+          </button>
+          <a href="{{ url_for('student.order') }}" class="quick-action-btn">
+            <i class="bi bi-bag-plus-fill"></i>
+            <span>Place Order</span>
+          </a>
+          <a href="{{ url_for('student.payment') }}" class="quick-action-btn">
+            <i class="bi bi-upload"></i>
+            <span>Upload Payment</span>
+          </a>
+          <a href="{{ url_for('student.attendance') }}" class="quick-action-btn">
+            <i class="bi bi-check2-square"></i>
+            <span>Attendance</span>
+          </a>
+          <a href="{{ url_for('student.leave') }}" class="quick-action-btn">
+            <i class="bi bi-calendar2-x"></i>
+            <span>Request Leave</span>
+          </a>
+          <a href="{{ url_for('student.rooms') }}" class="quick-action-btn">
+            <i class="bi bi-building"></i>
+            <span>Room Listings</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-megaphone-fill me-2"></i>Latest Notices</div>
+      <div class="mess-card-body">
+        {% if announcements %}
+          {% for ann in announcements %}
+            <div class="announcement-item">
+              <div class="ann-category cat-{{ ann.category }}">{{ ann.category | title }}</div>
+              <div class="ann-title">{{ ann.title }}</div>
+              <p class="ann-msg">{{ ann.message[:100] }}{% if ann.message|length > 100 %}...{% endif %}</p>
+              <small class="ann-date">{{ ann.created_at.strftime('%d %b %Y') }}</small>
+            </div>
+          {% endfor %}
+          <a href="{{ url_for('student.announcements') }}" class="btn btn-gold-outline w-100 mt-2">View All Notices</a>
+        {% else %}
+          <div class="empty-state"><i class="bi bi-megaphone"></i><p>No announcements yet.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Payments -->
+{% if recent_payments %}
+<div class="mess-card mt-4">
+  <div class="mess-card-header"><i class="bi bi-clock-history me-2"></i>Recent Payment Activity</div>
+  <div class="mess-card-body p-0">
+    <div class="table-responsive">
+      <table class="table mess-table mb-0">
+        <thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for p in recent_payments %}
+          <tr>
+            <td>#{{ p.id }}</td>
+            <td>{{ p.payment_type | title }}</td>
+            <td class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</td>
+            <td>{{ p.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              <span class="status-badge status-{{ p.status }}">
+                {{ 'Verified' if p.status == 'verified' else 'Pending' if p.status == 'pending' else 'Rejected' }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block head %}
+<style>
+.scan-done {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+.scan-pending {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- jsQR library for QR decoding from camera -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+let stream = null;
+let scanInterval = null;
+let currentFacing = 'environment'; // start with rear camera
+const scannerModal = new bootstrap.Modal(document.getElementById('scannerModal'));
+
+function openScanner() {
+  scannerModal.show();
+  document.getElementById('scanner-result').style.display = 'none';
+  document.getElementById('scanner-status').textContent = 'Starting camera...';
+  switchTab('camera');          // always open on camera tab
+  startCamera(currentFacing);
+}
+
+function switchTab(tab) {
+  const cameraPanel = document.getElementById('camera-panel');
+  const uploadPanel = document.getElementById('upload-panel');
+  const camTab = document.getElementById('cam-tab');
+  const uploadTab = document.getElementById('upload-tab');
+  const flipBtn = document.getElementById('camera-flip-btn');
+
+  if (tab === 'camera') {
+    cameraPanel.style.display = '';
+    uploadPanel.style.display = 'none';
+    camTab.classList.add('active');
+    camTab.style.color = '#ffbe33';
+    uploadTab.classList.remove('active');
+    uploadTab.style.color = '#aaa';
+    flipBtn.style.display = '';
+    startCamera(currentFacing);
+  } else {
+    stopScanner();
+    cameraPanel.style.display = 'none';
+    uploadPanel.style.display = '';
+    uploadTab.classList.add('active');
+    uploadTab.style.color = '#ffbe33';
+    camTab.classList.remove('active');
+    camTab.style.color = '#aaa';
+    flipBtn.style.display = 'none';
+    // reset upload state
+    document.getElementById('upload-status').textContent = '';
+    document.getElementById('upload-preview').style.display = 'none';
+    document.getElementById('qr-upload-input').value = '';
+  }
+}
+
+function decodeUploadedQR(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('upload-status');
+  const resultEl = document.getElementById('scanner-result');
+  const previewDiv = document.getElementById('upload-preview');
+  const previewImg = document.getElementById('upload-preview-img');
+
+  statusEl.textContent = 'Reading QR code...';
+  statusEl.style.color = '#aaa';
+  resultEl.style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // Show preview
+      previewImg.src = e.target.result;
+      previewDiv.style.display = 'block';
+
+      // Draw to canvas and decode
+      const canvas = document.getElementById('upload-canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height,
+                        { inversionAttempts: 'attemptBoth' });
+
+      if (code) {
+        const url = code.data;
+        if (url.includes('/student/qr-scan') && url.includes('token=') && url.includes('meal=')) {
+          statusEl.textContent = 'Valid QR detected! Redirecting...';
+          statusEl.style.color = '#22c55e';
+          resultEl.innerHTML = '<div class="alert alert-success py-2 mt-2"><i class="bi bi-check-circle-fill me-1"></i>Attendance will be marked!</div>';
+          resultEl.style.display = 'block';
+          setTimeout(() => { window.location.href = url; }, 900);
+        } else {
+          statusEl.textContent = 'QR found but it is not a mess attendance QR.';
+          statusEl.style.color = '#f59e0b';
+        }
+      } else {
+        statusEl.textContent = 'No QR code found in the image. Try a clearer screenshot.';
+        statusEl.style.color = '#ff4444';
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function stopScanner() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+async function startCamera(facing) {
+  stopScanner(); // stop any existing stream first
+  const video = document.getElementById('scanner-video');
+  const statusEl = document.getElementById('scanner-status');
+
+  // QR-optimized constraints — prioritise rear camera, high zoom, no face detection
+  const constraints = {
+    video: {
+      facingMode: { ideal: facing },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      frameRate: { ideal: 15 },
+      focusMode: 'continuous',          // continuous autofocus for close-up QR
+      advanced: [{ focusDistance: 0.1 }] // pull focus close (ignore faces in background)
+    }
+  };
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await video.play();
+
+    // Detect which camera we actually got
+    const track = stream.getVideoTracks()[0];
+    const label = track.label.toLowerCase();
+    const isRear = label.includes('back') || label.includes('rear') || label.includes('environment');
+    statusEl.textContent = isRear
+      ? 'Rear camera — point at the QR code on the stall screen'
+      : 'Front camera active — on desktop, hold the QR screen up to the camera';
+    statusEl.style.color = '';
+
+    scanInterval = setInterval(scanFrame, 200);
+  } catch (err) {
+    if (facing === 'environment') {
+      // Rear camera failed — try front camera automatically
+      statusEl.textContent = 'Rear camera unavailable, switching to front camera...';
+      currentFacing = 'user';
+      startCamera('user');
+    } else {
+      statusEl.textContent = 'Camera access denied. Allow camera permission and try again.';
+      statusEl.style.color = '#ff4444';
+    }
+  }
+}
+
+function flipCamera() {
+  currentFacing = (currentFacing === 'environment') ? 'user' : 'environment';
+  document.getElementById('flip-btn-label').textContent =
+    currentFacing === 'environment' ? 'Use Front Cam' : 'Use Rear Cam';
+  startCamera(currentFacing);
+}
+
+function scanFrame() {
+  const video = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height,
+                    { inversionAttempts: 'dontInvert' });
+
+  if (code) {
+    const url = code.data;
+    if (url.includes('/student/qr-scan') && url.includes('token=') && url.includes('meal=')) {
+      stopScanner();
+      document.getElementById('scanner-status').textContent = 'QR detected! Redirecting...';
+      document.getElementById('scanner-result').innerHTML =
+        '<div class="alert alert-success py-2"><i class="bi bi-check-circle-fill me-1"></i>Valid QR! Marking attendance...</div>';
+      document.getElementById('scanner-result').style.display = 'block';
+      setTimeout(() => { window.location.href = url; }, 700);
+    } else {
+      document.getElementById('scanner-status').textContent = 'Not a mess QR — point at the stall QR code.';
+    }
+  }
+}
+
+document.getElementById('scannerModal').addEventListener('hidden.bs.modal', stopScanner);
+</script>
+{% endblock %}

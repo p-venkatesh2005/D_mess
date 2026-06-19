@@ -1,0 +1,62 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+.cache
+
+# Flask / environment
+instance/
+.webassets-cache
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# VS Code / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+app.db
+dwaraka_mess.db
+*.db
+static/uploads/payments/*
+!static/uploads/payments/.gitkeep
+
+# PostgreSQL backups
+backups/
+*.sql
+*.sql.gz
+
+# Docker volumes
+postgres_data/
+
+# Logs
+logs/
+*.log
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+~*
+

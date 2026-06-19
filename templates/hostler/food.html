@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Food Menu{% endblock %}
+{% block page_title %}Food Menu{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Food <span class="text-gold">Menu 🍛</span></h2>
+    <p class="hero-sub">Weekly mess menu — next 7 days</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for item in menus %}
+  <div class="col-12">
+    <div class="mess-card {% if item.date == today %}menu-today{% endif %}">
+      {% if item.date == today %}
+      <div class="mess-card-header" style="background: linear-gradient(90deg, rgba(255,190,51,0.2), transparent);">
+        <i class="bi bi-star-fill text-gold me-2"></i>
+        <strong>Today — {{ item.date.strftime('%A, %d %B %Y') }}</strong>
+      </div>
+      {% else %}
+      <div class="mess-card-header">
+        <i class="bi bi-calendar3 me-2"></i>{{ item.date.strftime('%A, %d %B %Y') }}
+      </div>
+      {% endif %}
+      <div class="mess-card-body">
+        {% if item.menu %}
+        <div class="row g-3">
+          {% if item.menu.breakfast %}
+          <div class="col-md-4">
+            <div class="menu-meal-box">
+              <div class="meal-time-label">
+                <i class="bi bi-sunrise-fill text-warning me-1"></i>Breakfast
+                <span class="badge bg-secondary ms-1">{{ item.menu.breakfast_time }}</span>
+              </div>
+              <div class="meal-items">{{ item.menu.breakfast }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if item.menu.lunch %}
+          <div class="col-md-4">
+            <div class="menu-meal-box">
+              <div class="meal-time-label">
+                <i class="bi bi-sun-fill text-warning me-1"></i>Lunch
+                <span class="badge bg-secondary ms-1">{{ item.menu.lunch_time }}</span>
+              </div>
+              <div class="meal-items">{{ item.menu.lunch }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if item.menu.dinner %}
+          <div class="col-md-4">
+            <div class="menu-meal-box">
+              <div class="meal-time-label">
+                <i class="bi bi-moon-stars-fill text-info me-1"></i>Dinner
+                <span class="badge bg-secondary ms-1">{{ item.menu.dinner_time }}</span>
+              </div>
+              <div class="meal-items">{{ item.menu.dinner }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if item.menu.special %}
+          <div class="col-12">
+            <div class="alert alert-warning py-2 mb-0">
+              <i class="bi bi-star-fill me-1"></i><strong>Special:</strong> {{ item.menu.special }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-3">
+          <i class="bi bi-clock me-1"></i>Menu not set yet for this day.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

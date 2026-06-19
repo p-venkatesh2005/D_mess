@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Leave Requests{% endblock %}
+{% block page_title %}Leave Management{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Leave <span class="text-gold">Requests 🌴</span></h2>
+    <p class="hero-sub">Review and approve student meal leaves</p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="mess-card">
+      <div class="mess-card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar2-week me-2"></i>{{ leaves|length }} Leave Requests</span>
+        <span class="badge bg-warning text-dark">{{ leaves|selectattr("status", "equalto", "pending")|list|length }} Pending</span>
+      </div>
+      <div class="mess-card-body p-0">
+        <div class="table-responsive">
+          <table class="table mess-table mb-0 align-middle">
+            <thead>
+              <tr><th>Submitted</th><th>Student</th><th>Leave Period</th><th>Duration</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {% for leave in leaves %}
+              <tr class="{% if leave.status == 'pending' %}table-warning-subtle{% endif %}">
+                <td style="min-width: 100px;"><small class="text-muted">{{ leave.created_at.strftime('%d %b %Y') }}</small></td>
+                <td class="fw-semibold">{{ leave.student.user.name }}<br><small class="text-muted">{{ leave.student.user.phone }}</small></td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary">{{ leave.start_date.strftime('%d %b') }}</span>
+                    <i class="bi bi-arrow-right text-muted"></i>
+                    <span class="badge bg-secondary">{{ leave.end_date.strftime('%d %b') }}</span>
+                  </div>
+                </td>
+                <td><strong>{{ (leave.end_date - leave.start_date).days + 1 }} Days</strong></td>
+                <td style="max-width: 250px;" class="text-wrap">
+                  {% if leave.reason %}<i class="bi bi-chat-left-text me-1 text-muted"></i> {{ leave.reason }}{% else %}—{% endif %}
+                </td>
+                <td>
+                  <span class="status-badge status-{{ leave.status }}">
+                    {% if leave.status == 'approved' %}✅ Approved
+                    {% elif leave.status == 'pending' %}⏳ Pending
+                    {% else %}❌ Rejected{% endif %}
+                  </span>
+                </td>
+                <td>
+                  {% if leave.status == 'pending' %}
+                  <div class="d-flex gap-1 justify-content-end">
+                    <form method="POST" action="{{ url_for('admin.leave_action', leave_id=leave.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button name="action" value="approve" class="btn btn-sm btn-success px-3">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.leave_action', leave_id=leave.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button name="action" value="reject" class="btn btn-sm btn-danger px-3">Reject</button>
+                    </form>
+                  </div>
+                  {% else %}
+                  <div class="text-end text-muted small"><i class="bi bi-check2-all"></i> Processed</div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-calendar-x fs-2 d-block mb-2"></i>No leave requests found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

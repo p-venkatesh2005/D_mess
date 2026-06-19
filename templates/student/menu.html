@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Weekly Menu{% endblock %}
+{% block page_title %}Weekly Menu{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">This Week's <span class="text-gold">Menu 🍽️</span></h2>
+    <p class="hero-sub">Daily breakfast, lunch & dinner for the next 7 days</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for item in menus %}
+  <div class="col-md-6 col-xl-4">
+    <div class="menu-day-card {% if item.date == today %}menu-today{% endif %}">
+      <div class="menu-day-header">
+        <span class="day-name">{{ item.date.strftime('%A') }}</span>
+        <span class="day-date">{{ item.date.strftime('%d %b') }}</span>
+        {% if item.date == today %}<span class="today-pill">Today</span>{% endif %}
+      </div>
+      <div class="menu-day-body">
+        {% if item.menu %}
+          {% if item.menu.special %}
+            <div class="special-tag">🌟 {{ item.menu.special }}</div>
+          {% endif %}
+          <div class="meal-row">
+            <span class="meal-icon">🌅</span>
+            <div>
+              <div class="meal-label">Breakfast</div>
+              <div class="meal-desc">{{ item.menu.breakfast or '—' }}</div>
+            </div>
+          </div>
+          <div class="meal-row">
+            <span class="meal-icon">☀️</span>
+            <div>
+              <div class="meal-label">Lunch</div>
+              <div class="meal-desc">{{ item.menu.lunch or '—' }}</div>
+            </div>
+          </div>
+          <div class="meal-row">
+            <span class="meal-icon">🌙</span>
+            <div>
+              <div class="meal-label">Dinner</div>
+              <div class="meal-desc">{{ item.menu.dinner or '—' }}</div>
+            </div>
+          </div>
+        {% else %}
+          <div class="empty-state"><i class="bi bi-journal-x fs-3"></i><p>Menu not set yet</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

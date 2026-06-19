@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Hostler Dashboard{% endblock %}
+
+{% block head %}
+<style>
+.hostler-feature-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  cursor: pointer;
+  border: 1px solid rgba(255,190,51,0.12);
+}
+.hostler-feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 48px rgba(255,190,51,0.18);
+  border-color: rgba(255,190,51,0.45);
+}
+.hostler-feature-card .feature-emoji {
+  font-size: 3.2rem;
+  line-height: 1;
+}
+.badge-hostler {
+  background: linear-gradient(135deg,#f59e0b,#fbbf24);
+  color:#1a1a2e;
+  font-weight:700;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+</style>
+{% endblock %}
+
+{% block page_title %}Hostler Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Welcome, <span class="text-gold">{{ current_user.name }}! 🏠</span></h2>
+    <p class="hero-sub">{{ today.strftime('%A, %d %B %Y') }} — Hostel Resident Portal</p>
+  </div>
+  <span class="badge-hostler">Hostler</span>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('hostler.complaints') }}" class="stat-card stat-warn text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="stat-value">{{ complaint_count }}</div>
+      <div class="stat-label">My Complaints</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('hostler.rooms') }}" class="stat-card stat-gold text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-building"></i></div>
+      <div class="stat-value">{{ available_rooms }}</div>
+      <div class="stat-label">Rooms Available</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('hostler.food') }}" class="stat-card stat-success text-decoration-none d-block">
+      <div class="stat-icon"><i class="bi bi-journal-richtext"></i></div>
+      <div class="stat-value">🍛</div>
+      <div class="stat-label">Today's Menu</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+      <div class="stat-value">{{ today.strftime('%d %b') }}</div>
+      <div class="stat-label">Today</div>
+    </div>
+  </div>
+</div>
+
+<!-- Today's Menu Preview -->
+{% if today_menu %}
+<div class="mess-card mb-4">
+  <div class="mess-card-header"><i class="bi bi-star-fill text-gold me-2"></i>Today's Menu</div>
+  <div class="mess-card-body">
+    <div class="row g-3">
+      {% if today_menu.breakfast %}
+      <div class="col-md-4">
+        <div class="p-3 rounded-3" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);">
+          <div class="fw-bold mb-1"><i class="bi bi-sunrise-fill text-warning me-1"></i>Breakfast <small class="text-muted fw-normal">7–9 AM</small></div>
+          <div>{{ today_menu.breakfast }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if today_menu.lunch %}
+      <div class="col-md-4">
+        <div class="p-3 rounded-3" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);">
+          <div class="fw-bold mb-1"><i class="bi bi-sun-fill text-warning me-1"></i>Lunch <small class="text-muted fw-normal">12–2 PM</small></div>
+          <div>{{ today_menu.lunch }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if today_menu.dinner %}
+      <div class="col-md-4">
+        <div class="p-3 rounded-3" style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);">
+          <div class="fw-bold mb-1"><i class="bi bi-moon-stars-fill text-info me-1"></i>Dinner <small class="text-muted fw-normal">7–9 PM</small></div>
+          <div>{{ today_menu.dinner }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% if today_menu.special %}
+    <div class="alert alert-warning py-2 mt-3 mb-0">
+      <i class="bi bi-star-fill me-1"></i><strong>Special Today:</strong> {{ today_menu.special }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Feature Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <a href="{{ url_for('hostler.complaints') }}" class="text-decoration-none">
+      <div class="mess-card h-100 hostler-feature-card">
+        <div class="mess-card-body text-center py-5">
+          <div class="feature-emoji mb-3">📝</div>
+          <h4 class="fw-bold mb-2">File a Complaint</h4>
+          <p class="text-muted mb-4">Report food quality, hygiene, late service, or any facility issues. Admin will review and act on it.</p>
+          <span class="btn btn-gold-outline px-4">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Go to Complaints
+          </span>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6">
+    <a href="{{ url_for('hostler.food') }}" class="text-decoration-none">
+      <div class="mess-card h-100 hostler-feature-card">
+        <div class="mess-card-body text-center py-5">
+          <div class="feature-emoji mb-3">🍽️</div>
+          <h4 class="fw-bold mb-2">Food Menu</h4>
+          <p class="text-muted mb-4">View the weekly mess menu for all three meals — breakfast, lunch, and dinner — updated daily.</p>
+          <span class="btn btn-gold-outline px-4">
+            <i class="bi bi-journal-richtext me-1"></i> View Full Menu
+          </span>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6">
+    <a href="{{ url_for('hostler.rooms') }}" class="text-decoration-none">
+      <div class="mess-card h-100 hostler-feature-card">
+        <div class="mess-card-body text-center py-5">
+          <div class="feature-emoji mb-3">🏠</div>
+          <h4 class="fw-bold mb-2">Room Listings</h4>
+          <p class="text-muted mb-4">Browse available rooms for rent near the mess and hostel. Contact owners directly from the listing.</p>
+          <span class="btn btn-gold-outline px-4">
+            <i class="bi bi-building me-1"></i> Browse Rooms
+            {% if available_rooms > 0 %}
+            <span class="badge bg-success ms-1">{{ available_rooms }} available</span>
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6">
+    <div class="mess-card h-100" style="border:1px solid rgba(255,190,51,0.12);">
+      <div class="mess-card-body text-center py-5">
+        <div class="feature-emoji mb-3">📋</div>
+        <h4 class="fw-bold mb-2">My Info</h4>
+        <div class="text-start mx-auto" style="max-width:260px;">
+          <div class="mb-2 d-flex justify-content-between">
+            <span class="text-muted">Name</span>
+            <strong>{{ current_user.name }}</strong>
+          </div>
+          <div class="mb-2 d-flex justify-content-between">
+            <span class="text-muted">Phone</span>
+            <strong>{{ current_user.phone }}</strong>
+          </div>
+          {% if hostler_profile and hostler_profile.hostel_name %}
+          <div class="mb-2 d-flex justify-content-between">
+            <span class="text-muted">Hostel</span>
+            <strong>{{ hostler_profile.hostel_name }}</strong>
+          </div>
+          {% endif %}
+          {% if hostler_profile and hostler_profile.room_number %}
+          <div class="mb-2 d-flex justify-content-between">
+            <span class="text-muted">Room</span>
+            <strong>{{ hostler_profile.room_number }}</strong>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Complaints -->
+{% if recent_complaints %}
+<div class="mess-card">
+  <div class="mess-card-header"><i class="bi bi-clock-history me-2"></i>Recent Complaints</div>
+  <div class="mess-card-body p-0">
+    {% for c in recent_complaints %}
+    <div class="recent-payment-row">
+      <div>
+        <div class="fw-semibold">{{ c.meal_type | title if c.meal_type else 'General' }}</div>
+        <small class="text-muted">{{ c.message[:80] }}{% if c.message|length > 80 %}...{% endif %}</small>
+      </div>
+      <small class="text-muted">{{ c.created_at.strftime('%d %b %Y') }}</small>
+    </div>
+    {% endfor %}
+    <div class="p-3">
+      <a href="{{ url_for('hostler.complaints') }}" class="btn btn-gold-outline w-100">View All Complaints</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

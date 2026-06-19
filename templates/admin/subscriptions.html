@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Subscriptions{% endblock %}
+{% block page_title %}📋 Subscription Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="h2">Subscription Status Dashboard</h1>
+      <p class="text-muted">Real-time subscription validation and management</p>
+    </div>
+    <div class="col text-end">
+      <form method="POST" action="{{ url_for('admin_sub.validate_all_subscriptions') }}" style="display:inline;">
+        <button type="submit" class="btn btn-warning">
+          <i class="bi bi-arrow-clockwise"></i> Validate All
+        </button>
+      </form>
+      <a href="{{ url_for('admin_sub.subscription_report') }}" class="btn btn-info">
+        <i class="bi bi-file-earmark-pdf"></i> Report
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-md-6 col-lg-3">
+      <div class="card border-success">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Active</h6>
+          <h3 class="text-success">{{ report.active|length }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card border-info">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Expiring (7 days)</h6>
+          <h3 class="text-info">{{ report.expiring_soon_7_days|length }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card border-warning">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Expiring (3 days)</h6>
+          <h3 class="text-warning">{{ report.expiring_soon_3_days|length }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card border-danger">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Expired</h6>
+          <h3 class="text-danger">{{ report.expired|length }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" data-bs-toggle="tab" href="#active">
+        ✅ Active ({{ report.active|length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#expiring7">
+        ⚠️ 7 Days ({{ report.expiring_soon_7_days|length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#expiring3">
+        ⚠️ 3 Days ({{ report.expiring_soon_3_days|length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#expiring1">
+        🚨 1 Day ({{ report.expiring_soon_1_day|length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#expired">
+        ❌ Expired ({{ report.expired|length }})
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" data-bs-toggle="tab" href="#corrections">
+        🔄 Auto-Corrections ({{ report.sync_corrections|length }})
+      </a>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    
+    <!-- Active -->
+    <div id="active" class="tab-pane fade show active">
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Expiry Date</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in report.active %}
+              <tr>
+                <td>{{ sub.user_name }}</td>
+                <td>{{ sub.phone }}</td>
+                <td>{{ sub.expiry_date.strftime('%d %b %Y') if sub.expiry_date }}</td>
+                <td><span class="badge bg-success">{{ sub.days_remaining }} days</span></td>
+                <td>
+                  <a href="{{ url_for('admin_sub.student_subscription', student_id=sub.student_id) }}" class="btn btn-sm btn-info">
+                    View
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not report.active %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No active subscriptions</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiring 7 Days -->
+    <div id="expiring7" class="tab-pane fade">
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Expiry Date</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in report.expiring_soon_7_days %}
+              <tr class="table-info">
+                <td>{{ sub.user_name }}</td>
+                <td>{{ sub.phone }}</td>
+                <td>{{ sub.expiry_date.strftime('%d %b %Y') if sub.expiry_date }}</td>
+                <td><span class="badge bg-info">{{ sub.days_remaining }} days</span></td>
+                <td>
+                  <a href="{{ url_for('admin_sub.student_subscription', student_id=sub.student_id) }}" class="btn btn-sm btn-primary">
+                    Manage
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not report.expiring_soon_7_days %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No students expiring in 7 days</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiring 3 Days -->
+    <div id="expiring3" class="tab-pane fade">
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Expiry Date</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in report.expiring_soon_3_days %}
+              <tr class="table-warning">
+                <td>{{ sub.user_name }}</td>
+                <td>{{ sub.phone }}</td>
+                <td>{{ sub.expiry_date.strftime('%d %b %Y') if sub.expiry_date }}</td>
+                <td><span class="badge bg-warning">{{ sub.days_remaining }} days</span></td>
+                <td>
+                  <a href="{{ url_for('admin_sub.student_subscription', student_id=sub.student_id) }}" class="btn btn-sm btn-primary">
+                    Manage
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not report.expiring_soon_3_days %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No students expiring in 3 days</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiring 1 Day -->
+    <div id="expiring1" class="tab-pane fade">
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Expiry Date</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in report.expiring_soon_1_day %}
+              <tr class="table-danger">
+                <td>{{ sub.user_name }}</td>
+                <td>{{ sub.phone }}</td>
+                <td>{{ sub.expiry_date.strftime('%d %b %Y') if sub.expiry_date }}</td>
+                <td><span class="badge bg-danger">{{ sub.days_remaining }} day</span></td>
+                <td>
+                  <a href="{{ url_for('admin_sub.student_subscription', student_id=sub.student_id) }}" class="btn btn-sm btn-primary">
+                    Renew Now
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not report.expiring_soon_1_day %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No students expiring tomorrow</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expired -->
+    <div id="expired" class="tab-pane fade">
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Expired Since</th>
+                <th>Days Overdue</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in report.expired %}
+              <tr class="table-danger">
+                <td>{{ sub.user_name }}</td>
+                <td>{{ sub.phone }}</td>
+                <td>{{ sub.expiry_date.strftime('%d %b %Y') if sub.expiry_date }}</td>
+                <td><span class="badge bg-danger">{{ -sub.days_remaining }} days</span></td>
+                <td>
+                  <a href="{{ url_for('admin_sub.student_subscription', student_id=sub.student_id) }}" class="btn btn-sm btn-danger">
+                    Renew
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not report.expired %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No expired subscriptions</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-Corrections -->
+    <div id="corrections" class="tab-pane fade">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">🔄 Auto-Corrections Applied</h6>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Correction</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for correction in report.sync_corrections %}
+              <tr class="table-light">
+                <td>{{ correction.user_name }}</td>
+                <td>{{ correction.phone }}</td>
+                <td><span class="badge bg-warning">{{ correction.correction }}</span></td>
+              </tr>
+              {% endfor %}
+              {% if not report.sync_corrections %}
+              <tr><td colspan="3" class="text-center text-muted py-3">No auto-corrections needed</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

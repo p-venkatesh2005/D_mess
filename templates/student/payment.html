@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Payments{% endblock %}
+{% block page_title %}Payment{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Manage <span class="text-gold">Payments 💳</span></h2>
+    <p class="hero-sub">Upload UPI payment screenshots for verification</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- QR + Upload Section -->
+  <div class="col-lg-5">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-qr-code me-2"></i>Pay via UPI</div>
+      <div class="mess-card-body text-center">
+        <div class="qr-placeholder mb-3">
+          <i class="bi bi-qr-code-scan" style="font-size:5rem;color:var(--gold)"></i>
+          <div class="mt-2 fw-bold">Scan QR to Pay</div>
+          <div class="text-muted small">UPI ID: dwaraka@upi</div>
+        </div>
+        <div class="payment-amounts mb-3">
+          <div class="amount-pill">Monthly Subscription: <strong>₹3,000</strong></div>
+          <div class="amount-pill mt-2">Individual Tiffin: <strong>₹50</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mess-card mt-4">
+      <div class="mess-card-header"><i class="bi bi-upload me-2"></i>Upload Screenshot</div>
+      <div class="mess-card-body">
+        <form method="POST" action="{{ url_for('student.payment') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Payment Type</label>
+            <select class="form-select mess-input" name="payment_type" required>
+              <option value="subscription">Monthly Subscription</option>
+              <option value="tiffin">Tiffin Order</option>
+              <option value="misc">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Amount Paid (₹)</label>
+            <input type="number" class="form-control mess-input" name="amount" step="0.01" min="1" placeholder="3000" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Payment Screenshot</label>
+            <div class="upload-drop-zone" id="dropZone">
+              <i class="bi bi-cloud-upload-fill upload-icon"></i>
+              <p class="mb-1">Drag & drop or click to upload</p>
+              <small class="text-muted">JPG, PNG, PDF · Max 5MB</small>
+              <input type="file" class="upload-input" name="screenshot" id="screenshot"
+                     accept=".jpg,.jpeg,.png,.pdf" required />
+            </div>
+            <div id="preview-container" class="mt-2 d-none">
+              <img id="img-preview" class="img-thumbnail w-100" src="" alt="Preview" />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-gold w-100">
+            <i class="bi bi-send-fill me-2"></i>Submit Payment
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment History -->
+  <div class="col-lg-7">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-receipt me-2"></i>Payment History</div>
+      <div class="mess-card-body p-0">
+        {% if payments %}
+        <div class="table-responsive">
+          <table class="table mess-table mb-0">
+            <thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Date</th><th>Status</th><th>Screenshot</th></tr></thead>
+            <tbody>
+              {% for p in payments %}
+              <tr>
+                <td>#{{ p.id }}</td>
+                <td>{{ p.payment_type | title }}</td>
+                <td class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</td>
+                <td>{{ p.created_at.strftime('%d %b %Y') }}</td>
+                <td>
+                  <span class="status-badge status-{{ p.status }}">
+                    {% if p.status == 'verified' %}✅ Verified
+                    {% elif p.status == 'pending' %}⏳ Pending
+                    {% else %}❌ Rejected{% endif %}
+                  </span>
+                </td>
+                <td>
+                  {% if p.screenshot_path %}
+                    <a href="{{ url_for('static', filename=p.screenshot_path) }}" target="_blank" class="btn btn-sm btn-dark-outline">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  {% else %}—{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <div class="empty-state py-5"><i class="bi bi-receipt fs-2"></i><p>No payment records yet.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Image preview
+document.getElementById('screenshot').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('img-preview').src = ev.target.result;
+      document.getElementById('preview-container').classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// Drop zone
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('click', () => document.getElementById('screenshot').click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  document.getElementById('screenshot').files = e.dataTransfer.files;
+  document.getElementById('screenshot').dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}

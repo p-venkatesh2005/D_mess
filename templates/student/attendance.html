@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Daily <span class="text-gold">Attendance ✅</span></h2>
+    <p class="hero-sub">Let the mess know if you're eating today</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-check2-circle me-2"></i>Today's Status — {{ today.strftime('%d %B %Y') }}</div>
+      <div class="mess-card-body text-center">
+        {% if active_leave %}
+          <div class="leave-notice"><i class="bi bi-calendar2-x-fill me-2"></i>You are on approved leave today.</div>
+        {% endif %}
+        {% if today_att %}
+          <div class="current-status current-{{ today_att.status }}">
+            {{ '🍽️ Eating' if today_att.status == 'eating' else '🚫 Not Eating' if today_att.status == 'not_eating' else '🌴 On Leave' }}
+          </div>
+        {% else %}
+          <div class="current-status current-none">Not marked yet</div>
+        {% endif %}
+
+        <form method="POST" class="mt-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="attendance-btns">
+            <button name="status" value="eating" type="submit" class="btn btn-gold attendance-btn"
+                    {% if active_leave %}disabled title="On leave today"{% endif %}>
+              <i class="bi bi-emoji-smile-fill"></i> I'm Eating Today
+            </button>
+            <button name="status" value="not_eating" type="submit" class="btn btn-dark-outline attendance-btn mt-2">
+              <i class="bi bi-emoji-frown-fill"></i> Not Eating Today
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-calendar3 me-2"></i>Recent Attendance (Last 14 Days)</div>
+      <div class="mess-card-body p-0">
+        {% if recent_att %}
+        <div class="attendance-history">
+          {% for att in recent_att %}
+          <div class="att-row">
+            <span class="att-date">{{ att.date.strftime('%a, %d %b') }}</span>
+            <span class="att-status att-{{ att.status }}">
+              {{ '🍽️ Eating' if att.status == 'eating' else '🚫 Not Eating' if att.status == 'not_eating' else '🌴 On Leave' }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+          <div class="empty-state py-4"><i class="bi bi-calendar-x fs-3"></i><p>No attendance records yet.</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Announcements Management{% endblock %}
+{% block content %}
+<div class="page-hero mb-4">
+  <div>
+    <h2 class="hero-greeting">Broadcast <span class="text-gold">Announcements 📢</span></h2>
+    <p class="hero-sub">Publish news, menu updates, and notices to all students</p>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-pencil-square me-2"></i>Create Notice</div>
+      <div class="mess-card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="action" value="create" />
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Title</label>
+            <input type="text" class="form-control mess-input" name="title" required placeholder="E.g., Sunday Special Menu" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Category</label>
+            <select class="form-select mess-input" name="category">
+              <option value="general">General</option>
+              <option value="menu">Menu Update</option>
+              <option value="payment">Payment</option>
+              <option value="holiday">Holiday / Closure</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Message</label>
+            <textarea class="form-control mess-input" name="message" rows="4" required placeholder="Type the announcement details here..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-gold w-100"><i class="bi bi-megaphone-fill me-2"></i>Post Announcement</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="mess-card">
+      <div class="mess-card-header"><i class="bi bi-list-task me-2"></i>All Announcements</div>
+      <div class="mess-card-body p-0">
+        <div class="table-responsive">
+          <table class="table mess-table mb-0">
+            <thead><tr><th>Date</th><th>Category</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for ann in announcements %}
+              <tr>
+                <td>{{ ann.created_at.strftime('%d %b %Y') }}</td>
+                <td><span class="ann-cat-chip cat-{{ ann.category }}">{{ ann.category | title }}</span></td>
+                <td><div class="fw-semibold">{{ ann.title }}</div><small class="text-muted d-inline-block text-truncate" style="max-width: 200px;">{{ ann.message }}</small></td>
+                <td><span class="status-badge {% if ann.is_active %}status-verified{% else %}status-rejected{% endif %}">{{ 'Active' if ann.is_active else 'Disabled' }}</span></td>
+                <td>
+                  <div class="d-flex gap-1 justify-content-end">
+                    <form method="POST" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <input type="hidden" name="action" value="toggle" />
+                      <input type="hidden" name="ann_id" value="{{ ann.id }}" />
+                      <button class="btn btn-sm {% if ann.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="Toggle Visibility">
+                        <i class="bi {% if ann.is_active %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
+                      </button>
+                    </form>
+                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this announcement permanently?');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <input type="hidden" name="action" value="delete" />
+                      <input type="hidden" name="ann_id" value="{{ ann.id }}" />
+                      <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No announcements found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
