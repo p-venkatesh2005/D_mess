@@ -463,6 +463,125 @@ def attendance_chart():
     return render_template('admin/attendance_chart.html', chart_data=chart_data, today=today)
 
 
+@admin_bp.route('/attendance/export/<date_str>/<meal_session>')
+@login_required
+@role_required('admin')
+def attendance_export_single(date_str, meal_session):
+    """
+    Export attendance for a specific date and meal session.
+    Used when clicking bar chart.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
+    try:
+        export_date = date.fromisoformat(date_str)
+    except ValueError:
+        flash('Invalid date format.', 'danger')
+        return redirect(url_for('admin.attendance_chart'))
+    
+    # Validate meal_session
+    if meal_session not in ('breakfast', 'lunch', 'dinner', 'all'):
+        flash('Invalid meal session.', 'danger')
+        return redirect(url_for('admin.attendance_chart'))
+    
+    # Query scans
+    query = QRScan.query.filter(QRScan.scan_date == export_date)
+    if meal_session != 'all':
+        query = query.filter(QRScan.meal_session == meal_session)
+    scans = query.order_by(QRScan.scan_time).all()
+    
+    if not scans:
+        flash(f'No attendance records found for {export_date.strftime("%d %b %Y")} - {meal_session}.', 'info')
+        return redirect(url_for('admin.attendance_chart'))
+    
+    # Create Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"{export_date.strftime('%d %b')} - {meal_session.title()}"
+    
+    # Styles
+    header_fill = PatternFill(start_color='1A1A2E', end_color='1A1A2E', fill_type='solid')
+    header_font = Font(color='FFBE33', bold=True, size=11)
+    red_fill = PatternFill(start_color='FF4444', end_color='FF4444', fill_type='solid')
+    red_font = Font(color='FFFFFF', bold=True)
+    thin = Border(
+        left=Side(style='thin', color='CCCCCC'),
+        right=Side(style='thin', color='CCCCCC'),
+        top=Side(style='thin', color='CCCCCC'),
+        bottom=Side(style='thin', color='CCCCCC')
+    )
+    
+    # Headers
+    HEADERS = ['#', 'Date', 'Name', 'Phone', 'Room No', 'Subscription', 'Meal', 'Scan Time (IST)']
+    COL_WIDTHS = [5, 14, 26, 14, 12, 16, 14, 18]
+    
+    ws.append(HEADERS)
+    for col_idx, (header, width) in enumerate(zip(HEADERS, COL_WIDTHS), 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+    ws.freeze_panes = 'A2'
+    
+    # Data rows
+    for idx, scan in enumerate(scans, 1):
+        student = scan.student
+        user = student.user
+        ist_time = scan.scan_time + timedelta(hours=5, minutes=30)
+        
+        row_data = [
+            idx,
+            scan.scan_date.strftime('%d %b %Y'),
+            user.name,
+            user.phone,
+            student.room_number or '—',
+            student.subscription_status.upper(),
+            scan.meal_session.title(),
+            ist_time.strftime('%H:%M:%S'),
+        ]
+        ws.append(row_data)
+        
+        # Highlight inactive students
+        if student.subscription_status != 'active':
+            for col_idx in range(1, len(HEADERS) + 1):
+                cell = ws.cell(row=idx + 1, column=col_idx)
+                cell.fill = red_fill
+                cell.font = red_font
+        
+        # Apply borders
+        for col_idx in range(1, len(HEADERS) + 1):
+            ws.cell(row=idx + 1, column=col_idx).border = thin
+    
+    # Summary row
+    ws.append([])
+    summary_row = ws.max_row + 1
+    ws.cell(row=summary_row, column=1, value='TOTAL:')
+    ws.cell(row=summary_row, column=2, value=len(scans))
+    for col_idx in range(1, 3):
+        cell = ws.cell(row=summary_row, column=col_idx)
+        cell.font = Font(bold=True)
+    
+    # Save to BytesIO
+    from io import BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"attendance_{export_date.strftime('%Y-%m-%d')}_{meal_session}.xlsx"
+    
+    from flask import send_file
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
 @admin_bp.route('/attendance/export')
 @login_required
 @role_required('admin')
