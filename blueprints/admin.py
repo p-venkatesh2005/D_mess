@@ -469,20 +469,20 @@ def attendance_chart():
 def attendance_export_single(date_str, meal_session):
     """
     Export attendance for a specific date and meal session.
-    Used when clicking bar chart.
+    Can return JSON for display or Excel for download based on 'format' query param.
     """
-    from openpyxl import Workbook
-    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
-    
     try:
         export_date = date.fromisoformat(date_str)
     except ValueError:
+        if request.args.get('format') == 'json':
+            return jsonify({'error': 'Invalid date format'}), 400
         flash('Invalid date format.', 'danger')
         return redirect(url_for('admin.attendance_chart'))
     
     # Validate meal_session
     if meal_session not in ('breakfast', 'lunch', 'dinner', 'all'):
+        if request.args.get('format') == 'json':
+            return jsonify({'error': 'Invalid meal session'}), 400
         flash('Invalid meal session.', 'danger')
         return redirect(url_for('admin.attendance_chart'))
     
@@ -492,11 +492,49 @@ def attendance_export_single(date_str, meal_session):
         query = query.filter(QRScan.meal_session == meal_session)
     scans = query.order_by(QRScan.scan_time).all()
     
+    # Return JSON for AJAX display
+    if request.args.get('format') == 'json':
+        if not scans:
+            return jsonify({
+                'date': export_date.strftime('%d %b %Y'),
+                'meal': meal_session.title(),
+                'scans': [],
+                'count': 0
+            })
+        
+        scan_data = []
+        for idx, scan in enumerate(scans, 1):
+            student = scan.student
+            user = student.user
+            ist_time = scan.scan_time + timedelta(hours=5, minutes=30)
+            
+            scan_data.append({
+                'id': idx,
+                'name': user.name,
+                'phone': user.phone,
+                'room': student.room_number or '—',
+                'subscription': student.subscription_status,
+                'meal': scan.meal_session.title(),
+                'time': ist_time.strftime('%H:%M:%S'),
+                'is_active': student.subscription_status == 'active'
+            })
+        
+        return jsonify({
+            'date': export_date.strftime('%d %b %Y'),
+            'meal': meal_session.title(),
+            'scans': scan_data,
+            'count': len(scans)
+        })
+    
+    # Excel export (original functionality)
     if not scans:
         flash(f'No attendance records found for {export_date.strftime("%d %b %Y")} - {meal_session}.', 'info')
         return redirect(url_for('admin.attendance_chart'))
     
-    # Create Excel
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
     wb = Workbook()
     ws = wb.active
     ws.title = f"{export_date.strftime('%d %b')} - {meal_session.title()}"

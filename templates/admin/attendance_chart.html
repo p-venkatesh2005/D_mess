@@ -50,10 +50,55 @@
 <div class="mess-card mb-4">
   <div class="mess-card-header d-flex justify-content-between align-items-center">
     <span><i class="bi bi-bar-chart-fill me-2"></i>Daily QR Scan Count — Last 30 Days</span>
-    <small class="text-muted"><i class="bi bi-hand-index me-1"></i>Click a bar to download that day's Excel</small>
+    <small class="text-muted"><i class="bi bi-hand-index me-1"></i>Click a bar to view student details</small>
   </div>
   <div class="mess-card-body">
     <canvas id="attendanceChart" height="120"></canvas>
+  </div>
+</div>
+
+<!-- Student Details Table (shown after clicking bar) -->
+<div class="mess-card mb-4" id="detailsCard" style="display:none;">
+  <div class="mess-card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people-fill me-2"></i><span id="detailsTitle">Students</span></span>
+    <div>
+      <button class="btn btn-sm btn-gold-outline me-2" id="downloadBtn" onclick="downloadExcel()">
+        <i class="bi bi-download me-1"></i>Download Excel
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="hideDetails()">
+        <i class="bi bi-x-lg"></i> Close
+      </button>
+    </div>
+  </div>
+  <div class="mess-card-body p-0">
+    <div id="detailsLoading" class="text-center py-4" style="display:none;">
+      <div class="spinner-border text-gold" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="text-muted mt-2">Loading student details...</p>
+    </div>
+    <div id="detailsEmpty" class="text-center py-4" style="display:none;">
+      <i class="bi bi-inbox" style="font-size:3rem;color:#666;"></i>
+      <p class="text-muted mt-2">No attendance records found</p>
+    </div>
+    <div class="table-responsive" id="detailsTable" style="display:none;">
+      <table class="table mess-table mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Room</th>
+            <th>Subscription</th>
+            <th>Meal</th>
+            <th>Scan Time (IST)</th>
+          </tr>
+        </thead>
+        <tbody id="detailsBody">
+          <!-- Populated via JavaScript -->
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -119,6 +164,9 @@ const lunch = chartData.map(d => d.lunch);
 const dinner = chartData.map(d => d.dinner);
 const dates = chartData.map(d => d.date);
 
+let currentDate = '';
+let currentMeal = '';
+
 const ctx = document.getElementById('attendanceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'bar',
@@ -160,7 +208,7 @@ const chart = new Chart(ctx, {
         callbacks: {
           footer: (items) => {
             const total = items.reduce((s, i) => s + i.parsed.y, 0);
-            return `Total: ${total} scans — Click to download`;
+            return `Total: ${total} scans — Click to view details`;
           }
         }
       }
@@ -183,11 +231,88 @@ const chart = new Chart(ctx, {
         const idx = elements[0].index;
         const dateStr = dates[idx];
         const meal = ['breakfast','lunch','dinner'][elements[0].datasetIndex];
-        // Download that meal's Excel
-        window.location.href = `/admin/attendance/export/${dateStr}/${meal}`;
+        loadDetails(dateStr, meal);
       }
     }
   }
 });
+
+function loadDetails(date, meal) {
+  currentDate = date;
+  currentMeal = meal;
+  
+  // Show card and loading
+  document.getElementById('detailsCard').style.display = 'block';
+  document.getElementById('detailsLoading').style.display = 'block';
+  document.getElementById('detailsTable').style.display = 'none';
+  document.getElementById('detailsEmpty').style.display = 'none';
+  
+  // Smooth scroll to details
+  document.getElementById('detailsCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  
+  // Fetch data via AJAX
+  fetch(`/admin/attendance/export/${date}/${meal}?format=json`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('detailsLoading').style.display = 'none';
+      
+      if (data.scans && data.scans.length > 0) {
+        // Update title
+        document.getElementById('detailsTitle').textContent = 
+          `${data.date} — ${data.meal} (${data.count} student${data.count > 1 ? 's' : ''})`;
+        
+        // Populate table
+        const tbody = document.getElementById('detailsBody');
+        tbody.innerHTML = '';
+        
+        data.scans.forEach(scan => {
+          const row = document.createElement('tr');
+          if (!scan.is_active) {
+            row.classList.add('table-danger');
+            row.title = 'Inactive subscription';
+          }
+          
+          row.innerHTML = `
+            <td class="fw-bold">${scan.id}</td>
+            <td>${scan.name}</td>
+            <td>${scan.phone}</td>
+            <td>${scan.room}</td>
+            <td>
+              <span class="badge ${scan.is_active ? 'bg-success' : 'bg-danger'}">
+                ${scan.subscription.toUpperCase()}
+              </span>
+            </td>
+            <td>
+              <span class="badge" style="background:${meal === 'breakfast' ? '#f59e0b' : meal === 'lunch' ? '#6366f1' : '#22d3ee'}">
+                ${scan.meal}
+              </span>
+            </td>
+            <td><i class="bi bi-clock me-1"></i>${scan.time}</td>
+          `;
+          tbody.appendChild(row);
+        });
+        
+        document.getElementById('detailsTable').style.display = 'block';
+      } else {
+        document.getElementById('detailsEmpty').style.display = 'block';
+        document.getElementById('detailsTitle').textContent = `${data.date} — ${data.meal}`;
+      }
+    })
+    .catch(error => {
+      console.error('Error loading details:', error);
+      document.getElementById('detailsLoading').style.display = 'none';
+      document.getElementById('detailsEmpty').style.display = 'block';
+      document.getElementById('detailsTitle').textContent = 'Error loading data';
+    });
+}
+
+function hideDetails() {
+  document.getElementById('detailsCard').style.display = 'none';
+}
+
+function downloadExcel() {
+  // Download Excel for currently displayed data
+  window.location.href = `/admin/attendance/export/${currentDate}/${currentMeal}`;
+}
 </script>
 {% endblock %}
