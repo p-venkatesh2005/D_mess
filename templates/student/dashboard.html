@@ -412,7 +412,7 @@ function decodeUploadedQR(event) {
 
       if (code) {
         const url = code.data;
-        if (url.includes('/student/qr-scan') && url.includes('token=') && url.includes('meal=')) {
+        if (url.includes('/student/qr-scan') && url.includes('token=') && url.includes('date=')) {
           statusEl.textContent = 'Valid QR detected! Redirecting...';
           statusEl.style.color = '#22c55e';
           resultEl.innerHTML = '<div class="alert alert-success py-2 mt-2"><i class="bi bi-check-circle-fill me-1"></i>Attendance will be marked!</div>';
@@ -504,7 +504,7 @@ function scanFrame() {
 
   if (code) {
     const url = code.data;
-    if (url.includes('/student/qr-scan') && url.includes('token=') && url.includes('meal=')) {
+    if (url.includes('/student/qr-scan') && url.includes('token=') && url.includes('date=')) {
       stopScanner();
       document.getElementById('scanner-status').textContent = 'QR detected! Redirecting...';
       document.getElementById('scanner-result').innerHTML =
