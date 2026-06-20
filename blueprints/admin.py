@@ -254,17 +254,23 @@ def payment_action(payment_id):
         payment.verified_at = datetime.utcnow()
         payment.verified_by = current_user.id
         student = payment.student
+        
         if payment.payment_type == 'subscription':
-            student.subscription_status = 'active'
+            # Use subscription service to properly activate subscription with dates
+            from subscription_service import activate_subscription
+            success, message = activate_subscription(student.id, duration_days=30)
+            
+            # Link payment to subscription record
             today = date.today()
             sub = Subscription.query.filter_by(
-                student_id=student.id, month=today.month, year=today.year, status='pending'
+                student_id=student.id, month=today.month, year=today.year
             ).first()
             if sub:
                 sub.status = 'active'
                 sub.payment_id = payment.id
+        
         db.session.commit()
-        flash(f'Payment #{payment.id} verified. Subscription activated if applicable. ✅', 'success')
+        flash(f'Payment #{payment.id} verified. Subscription activated! ✅', 'success')
     elif action == 'reject':
         payment.status = 'rejected'
         payment.verified_at = datetime.utcnow()
