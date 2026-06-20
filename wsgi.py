@@ -53,14 +53,21 @@ with app.app_context():
                 name='Dwaraka Admin',
                 phone=admin_phone,
                 email='admin@dwaraka.com',
-                role='admin'
+                role='admin',
+                is_active=True  # Explicitly set active
             )
             admin.set_password(admin_password)
             db.session.add(admin)
             db.session.commit()
             print(f"✅ Admin user created - Phone: {admin_phone}")
         else:
-            print(f"✅ Admin user exists - Phone: {admin_phone}")
+            # Ensure existing admin is active
+            if not admin.is_active:
+                admin.is_active = True
+                db.session.commit()
+                print(f"✅ Admin user reactivated - Phone: {admin_phone}")
+            else:
+                print(f"✅ Admin user exists - Phone: {admin_phone}")
         
         print("=" * 60)
         print("🚀 Application ready to serve requests!")

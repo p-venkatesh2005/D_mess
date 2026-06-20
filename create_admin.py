@@ -39,12 +39,14 @@ def create_admin():
             
             if admin:
                 print(f"⚠️  Admin user already exists with phone: {admin_phone}")
-                choice = input("Do you want to reset the password? (y/n): ").strip().lower()
+                print(f"   Current status: {'Active' if admin.is_active else 'Deactivated'}")
+                choice = input("Do you want to reset password and reactivate? (y/n): ").strip().lower()
                 
                 if choice == 'y':
                     admin.set_password(admin_password)
+                    admin.is_active = True  # Ensure admin is active
                     db.session.commit()
-                    print(f"✅ Admin password reset successfully!")
+                    print(f"✅ Admin password reset and activated successfully!")
                 else:
                     print("❌ Operation cancelled")
                     return
@@ -54,7 +56,8 @@ def create_admin():
                     name='Dwaraka Admin',
                     phone=admin_phone,
                     email='admin@dwaraka.com',
-                    role='admin'
+                    role='admin',
+                    is_active=True  # Explicitly set active
                 )
                 admin.set_password(admin_password)
                 db.session.add(admin)
