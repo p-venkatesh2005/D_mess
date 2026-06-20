@@ -429,16 +429,22 @@ def qr_scan():
             db.session.add(scan)
             db.session.commit()
             scan_time_ist = scan.scan_time + timedelta(hours=5, minutes=30)
+            
+            # Debug logging
+            print(f"✅ QRScan created: ID={scan.id}, student_id={student.id}, date={today}, meal={meal}, time={scan_time_ist}")
+            
         except IntegrityError:
             db.session.rollback()
             already_scanned = True
             scan_time_ist = None
+            print(f"❌ QRScan failed (IntegrityError): student_id={student.id}, date={today}, meal={meal}")
     else:
         # Fetch existing scan time
         existing = QRScan.query.filter_by(
             student_id=student.id, scan_date=today, meal_session=meal
         ).first()
         scan_time_ist = (existing.scan_time + timedelta(hours=5, minutes=30)) if existing else None
+        print(f"ℹ️  Already scanned: student_id={student.id}, date={today}, meal={meal}")
 
     # Get subscription state for display
     sub_state = get_subscription_state(student.id)
