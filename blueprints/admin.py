@@ -256,21 +256,42 @@ def payment_action(payment_id):
         student = payment.student
         
         if payment.payment_type == 'subscription':
-            # Use subscription service to properly activate subscription with dates
-            from subscription_service import activate_subscription
-            success, message = activate_subscription(student.id, duration_days=30)
+            # Calculate subscription dates from payment upload date (not verification date)
+            payment_upload_date = payment.created_at.date()
+            subscription_start = payment_upload_date
+            subscription_end = payment_upload_date + timedelta(days=30)
+            
+            # Update student subscription
+            student.subscription_status = 'active'
+            student.subscription_start = subscription_start
+            student.subscription_end = subscription_end
             
             # Link payment to subscription record
-            today = date.today()
+            upload_month = payment_upload_date.month
+            upload_year = payment_upload_date.year
             sub = Subscription.query.filter_by(
-                student_id=student.id, month=today.month, year=today.year
+                student_id=student.id, month=upload_month, year=upload_year
             ).first()
             if sub:
                 sub.status = 'active'
                 sub.payment_id = payment.id
+            else:
+                # Create subscription record if doesn't exist
+                sub = Subscription(
+                    student_id=student.id,
+                    month=upload_month,
+                    year=upload_year,
+                    amount=payment.amount,
+                    status='active',
+                    payment_id=payment.id
+                )
+                db.session.add(sub)
+            
+            flash(f'Payment #{payment.id} verified. Subscription: {subscription_start.strftime("%d %b")} to {subscription_end.strftime("%d %b %Y")} ✅', 'success')
+        else:
+            flash(f'Payment #{payment.id} verified. ✅', 'success')
         
         db.session.commit()
-        flash(f'Payment #{payment.id} verified. Subscription activated! ✅', 'success')
     elif action == 'reject':
         payment.status = 'rejected'
         payment.verified_at = datetime.utcnow()
