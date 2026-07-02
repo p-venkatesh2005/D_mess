@@ -247,16 +247,37 @@ def payment():
             flash('This screenshot has already been uploaded. Please upload a different proof of payment.', 'danger')
             return redirect(url_for('student.payment'))
 
-        upload_folder = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
-        _, filename = save_uploaded_file(file, upload_folder, student.id)
+        # Upload to Cloudinary if enabled, otherwise fallback to local storage
+        cloudinary_data = None
+        local_filename = None
+        
+        if current_app.config.get('CLOUDINARY_ENABLED'):
+            try:
+                from cloudinary_service import upload_payment_screenshot
+                cloudinary_data = upload_payment_screenshot(file, student.id)
+                current_app.logger.info(f"Payment uploaded to Cloudinary: {cloudinary_data['public_id']}")
+            except Exception as e:
+                current_app.logger.error(f"Cloudinary upload failed: {str(e)}")
+                flash('Image upload failed. Please try again.', 'danger')
+                return redirect(url_for('student.payment'))
+        else:
+            # Fallback to local storage
+            upload_folder = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
+            _, local_filename = save_uploaded_file(file, upload_folder, student.id)
 
         payment = Payment(
             student_id=student.id,
             amount=amount,
-            screenshot_path=f"uploads/payments/{filename}",
+            screenshot_path=f"uploads/payments/{local_filename}" if local_filename else None,
             screenshot_hash=file_hash,
             payment_type=payment_type,
-            status='pending'
+            status='pending',
+            cloudinary_url=cloudinary_data['secure_url'] if cloudinary_data else None,
+            cloudinary_public_id=cloudinary_data['public_id'] if cloudinary_data else None,
+            image_width=cloudinary_data['width'] if cloudinary_data else None,
+            image_height=cloudinary_data['height'] if cloudinary_data else None,
+            image_format=cloudinary_data['format'] if cloudinary_data else None,
+            image_bytes=cloudinary_data['bytes'] if cloudinary_data else None
         )
         db.session.add(payment)
         db.session.commit()

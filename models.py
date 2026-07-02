@@ -50,14 +50,22 @@ class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    screenshot_path = db.Column(db.String(300), nullable=True)
+    screenshot_path = db.Column(db.String(300), nullable=True)  # DEPRECATED: Keep for backward compatibility
     screenshot_hash = db.Column(db.String(64), nullable=True)  # SHA-256 hash for dedup
     status = db.Column(db.String(20), default='pending')  # pending, verified, rejected
     payment_type = db.Column(db.String(30), default='subscription')  # subscription, tiffin, misc
-    notes = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.String(200), nullable=True)  # Optimized: TEXT → VARCHAR(200)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     verified_at = db.Column(db.DateTime, nullable=True)
     verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Cloudinary integration columns
+    cloudinary_url = db.Column(db.String(500), nullable=True)
+    cloudinary_public_id = db.Column(db.String(200), nullable=True)
+    image_width = db.Column(db.Integer, nullable=True)
+    image_height = db.Column(db.Integer, nullable=True)
+    image_format = db.Column(db.String(10), nullable=True)
+    image_bytes = db.Column(db.Integer, nullable=True)
 
 
 class Subscription(db.Model):
@@ -83,7 +91,7 @@ class Order(db.Model):
     meal_type = db.Column(db.String(20), nullable=False)  # breakfast, lunch, dinner, tiffin
     order_date = db.Column(db.Date, default=date.today)
     order_status = db.Column(db.String(20), default='pending')  # pending, preparing, ready, served, cancelled
-    notes = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.String(200), nullable=True)  # Optimized: TEXT → VARCHAR(200)
     amount = db.Column(db.Float, default=0.0)
     is_paid = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -98,13 +106,13 @@ class Menu(db.Model):
     __tablename__ = 'menus'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, unique=True, nullable=False)
-    breakfast = db.Column(db.Text, nullable=True)
+    breakfast = db.Column(db.String(500), nullable=True)  # Optimized: TEXT → VARCHAR(500)
     breakfast_time = db.Column(db.String(20), default='7:00 AM - 9:00 AM')
-    lunch = db.Column(db.Text, nullable=True)
+    lunch = db.Column(db.String(500), nullable=True)  # Optimized: TEXT → VARCHAR(500)
     lunch_time = db.Column(db.String(20), default='12:00 PM - 2:00 PM')
-    dinner = db.Column(db.Text, nullable=True)
+    dinner = db.Column(db.String(500), nullable=True)  # Optimized: TEXT → VARCHAR(500)
     dinner_time = db.Column(db.String(20), default='7:00 PM - 9:00 PM')
-    special = db.Column(db.Text, nullable=True)
+    special = db.Column(db.String(200), nullable=True)  # Optimized: TEXT → VARCHAR(200)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -128,7 +136,7 @@ class LeaveRequest(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
-    reason = db.Column(db.Text, nullable=True)
+    reason = db.Column(db.String(500), nullable=True)  # Optimized: TEXT → VARCHAR(500)
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -137,7 +145,7 @@ class Announcement(db.Model):
     __tablename__ = 'announcements'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    message = db.Column(db.Text, nullable=False)
+    message = db.Column(db.String(2000), nullable=False)  # Optimized: TEXT → VARCHAR(2000)
     category = db.Column(db.String(50), default='general')  # general, menu, payment, holiday
     is_active = db.Column(db.Boolean, default=True)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -150,7 +158,7 @@ class Feedback(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     meal_type = db.Column(db.String(20), nullable=True)  # breakfast, lunch, dinner, general
     rating = db.Column(db.Integer, nullable=False)  # 1-5
-    message = db.Column(db.Text, nullable=True)
+    message = db.Column(db.String(1000), nullable=True)  # Optimized: TEXT → VARCHAR(1000)
     is_complaint = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -195,7 +203,7 @@ class RoomListing(db.Model):
     __tablename__ = 'room_listings'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(1500), nullable=True)  # Optimized: TEXT → VARCHAR(1500)
     address = db.Column(db.String(300), nullable=True)
     rent_per_month = db.Column(db.Float, nullable=False)
     contact_name = db.Column(db.String(100), nullable=True)

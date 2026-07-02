@@ -1,0 +1,244 @@
+{% extends "admin/base.html" %}
+{% block title %}Storage Report - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>
+                <i class="bi bi-pie-chart-fill"></i> Storage Optimization Report
+            </h2>
+            <p class="text-muted">Monitor database usage and optimize storage for Neon Free Tier</p>
+        </div>
+    </div>
+
+    <!-- Storage Overview Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Database Usage -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-database"></i> PostgreSQL Usage
+                    </h6>
+                    <h2 class="mb-2">
+                        {{ (total_db_size / (1024 * 1024)) | round(2) }} MB
+                    </h2>
+                    <div class="progress mb-2" style="height: 8px;">
+                        {% if neon_usage_percent < 50 %}
+                        <div class="progress-bar bg-success" style="width: {{ neon_usage_percent }}%"></div>
+                        {% elif neon_usage_percent < 80 %}
+                        <div class="progress-bar bg-warning" style="width: {{ neon_usage_percent }}%"></div>
+                        {% else %}
+                        <div class="progress-bar bg-danger" style="width: {{ neon_usage_percent }}%"></div>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">
+                        {{ neon_usage_percent | round(1) }}% of 500 MB (Neon Free Tier)
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloudinary Status -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-cloud-upload"></i> Cloudinary Status
+                    </h6>
+                    {% if cloudinary_enabled %}
+                    <h2 class="mb-2 text-success">
+                        <i class="bi bi-check-circle-fill"></i> Enabled
+                    </h2>
+                    {% if cloudinary_usage %}
+                    <small class="text-muted d-block">
+                        Storage: {{ (cloudinary_usage.storage / (1024 * 1024)) | round(2) }} MB
+                    </small>
+                    <small class="text-muted d-block">
+                        Resources: {{ cloudinary_usage.resources }}
+                    </small>
+                    {% endif %}
+                    {% else %}
+                    <h2 class="mb-2 text-danger">
+                        <i class="bi bi-x-circle-fill"></i> Disabled
+                    </h2>
+                    <small class="text-danger">
+                        ⚠️ Files will be lost on redeploy!
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Storage -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-receipt"></i> Payment Screenshots
+                    </h6>
+                    <h2 class="mb-2">{{ payment_stats.total }}</h2>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-cloud text-success"></i> {{ payment_stats.cloudinary }} on Cloudinary
+                    </small>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-hdd text-warning"></i> {{ payment_stats.local }} on local disk
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    {% if recommendations %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb"></i> Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for rec in recommendations %}
+                    <div class="alert alert-{{ 'danger' if rec.level == 'critical' else ('warning' if rec.level in ['high', 'warning'] else 'info') }} mb-2">
+                        <i class="bi bi-{{ 'exclamation-triangle-fill' if rec.level == 'critical' else ('exclamation-circle' if rec.level == 'high' else 'info-circle') }}"></i>
+                        {{ rec.message }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cleanup Operations -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-trash"></i> Cleanup Operations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Records eligible for cleanup (won't affect active data):</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ cleanup_candidates.qr_scans_old | default(0) }}</h3>
+                                    <small>Old QR Scans<br/>(>12 months)</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ cleanup_candidates.attendance_old | default(0) }}</h3>
+                                    <small>Old Attendance<br/>(>12 months)</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ cleanup_candidates.payments_rejected | default(0) }}</h3>
+                                    <small>Rejected Payments<br/>(>30 days)</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ cleanup_candidates.orders_old | default(0) }}</h3>
+                                    <small>Old Orders<br/>(>6 months)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('admin.storage_cleanup') }}" class="mt-4" 
+                          onsubmit="return confirm('⚠️ This will permanently delete old records. Continue?');">
+                        <input type="hidden" name="operation" value="all">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="bi bi-trash-fill"></i> Run Full Cleanup
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            Deletes all eligible old records to free up space
+                        </small>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Sizes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table"></i> Database Tables
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Table Name</th>
+                                    <th class="text-end">Size</th>
+                                    <th class="text-end">Rows</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for table in table_data[:10] %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-table"></i> {{ table.name }}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-secondary">{{ table.size }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        {{ row_counts.get(table.name, '—') }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row Counts Summary -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> Record Counts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        {% for table, count in row_counts.items() %}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="p-2 border rounded">
+                                <small class="text-muted d-block">{{ table }}</small>
+                                <strong>{{ count }}</strong>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

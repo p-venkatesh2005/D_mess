@@ -2,7 +2,7 @@
 Admin Blueprint — Dwaraka Mess
 Includes: Dashboard, Students, Payments, Menu, Announcements,
 Feedback, Leaves, QR Attendance, Attendance Chart, Excel Export,
-Room Listings, Hostler Management.
+Room Listings, Hostler Management, Storage Optimization.
 """
 import io
 import hmac
@@ -11,7 +11,7 @@ import base64
 import qrcode
 from datetime import date, datetime, timedelta
 from flask import (Blueprint, render_template, redirect, url_for, flash,
-                   request, send_file, current_app, make_response)
+                   request, send_file, current_app, make_response, jsonify)
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from extensions import db
@@ -957,3 +957,193 @@ def hostlers():
 
     hostlers = Hostler.query.join(User).order_by(User.name).all()
     return render_template('admin/hostlers.html', hostlers=hostlers)
+
+
+# ─── Storage Monitoring & Optimization ───────────────────────────────────────
+
+@admin_bp.route('/storage-report')
+@login_required
+@role_required('admin')
+def storage_report():
+    """
+    Storage optimization dashboard showing:
+    - Database table sizes and row counts
+    - Cloudinary usage statistics
+    - Cleanup candidates
+    - Storage recommendations
+    """
+    from sqlalchemy import text
+    from cleanup_service import get_cleanup_candidates
+    import cloudinary_service
+    
+    # Get table sizes from PostgreSQL
+    table_size_query = text("""
+        SELECT 
+            table_name,
+            pg_size_pretty(pg_total_relation_size(quote_ident(table_name))) as size,
+            pg_total_relation_size(quote_ident(table_name)) as size_bytes
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+        ORDER BY pg_total_relation_size(quote_ident(table_name)) DESC
+    """)
+    
+    try:
+        table_sizes = db.session.execute(table_size_query).fetchall()
+        table_data = [{
+            'name': row[0],
+            'size': row[1],
+            'size_bytes': row[2]
+        } for row in table_sizes]
+        total_db_size = sum(t['size_bytes'] for t in table_data)
+    except Exception as e:
+        current_app.logger.error(f"Failed to get table sizes: {str(e)}")
+        table_data = []
+        total_db_size = 0
+    
+    # Get row counts for all tables
+    row_counts = {
+        'users': User.query.count(),
+        'students': Student.query.count(),
+        'payments': Payment.query.count(),
+        'subscriptions': Subscription.query.count(),
+        'orders': Order.query.count(),
+        'menus': Menu.query.count(),
+        'attendance': Attendance.query.count(),
+        'leave_requests': LeaveRequest.query.count(),
+        'announcements': Announcement.query.count(),
+        'feedback': Feedback.query.count(),
+        'qr_scans': QRScan.query.count(),
+        'hostlers': Hostler.query.count(),
+        'room_listings': RoomListing.query.count()
+    }
+    
+    # Get Cloudinary usage
+    cloudinary_usage = {}
+    cloudinary_enabled = current_app.config.get('CLOUDINARY_ENABLED', False)
+    if cloudinary_enabled:
+        try:
+            cloudinary_usage = cloudinary_service.get_cloudinary_usage()
+        except Exception as e:
+            current_app.logger.error(f"Failed to get Cloudinary usage: {str(e)}")
+    
+    # Get cleanup candidates
+    try:
+        cleanup_candidates = get_cleanup_candidates()
+    except Exception as e:
+        current_app.logger.error(f"Failed to get cleanup candidates: {str(e)}")
+        cleanup_candidates = {}
+    
+    # Calculate storage metrics
+    neon_limit_bytes = 0.5 * 1024 * 1024 * 1024  # 0.5 GB = 500 MB
+    neon_usage_percent = (total_db_size / neon_limit_bytes) * 100 if neon_limit_bytes > 0 else 0
+    
+    # Count payments by storage type
+    payment_stats = {
+        'total': Payment.query.count(),
+        'cloudinary': Payment.query.filter(Payment.cloudinary_url.isnot(None)).count(),
+        'local': Payment.query.filter(
+            Payment.screenshot_path.isnot(None),
+            Payment.cloudinary_url.is_(None)
+        ).count(),
+        'pending': Payment.query.filter_by(status='pending').count(),
+        'verified': Payment.query.filter_by(status='verified').count(),
+        'rejected': Payment.query.filter_by(status='rejected').count()
+    }
+    
+    # Storage recommendations
+    recommendations = []
+    if cleanup_candidates.get('qr_scans_old', 0) > 1000:
+        recommendations.append({
+            'level': 'high',
+            'message': f"Delete {cleanup_candidates['qr_scans_old']} old QR scans (>12 months) to save space"
+        })
+    if cleanup_candidates.get('attendance_old', 0) > 1000:
+        recommendations.append({
+            'level': 'medium',
+            'message': f"Archive {cleanup_candidates['attendance_old']} old attendance records"
+        })
+    if not cloudinary_enabled:
+        recommendations.append({
+            'level': 'critical',
+            'message': "Cloudinary not configured. Payment screenshots will be lost on redeploy!"
+        })
+    elif payment_stats['local'] > 0:
+        recommendations.append({
+            'level': 'high',
+            'message': f"Migrate {payment_stats['local']} local payment screenshots to Cloudinary"
+        })
+    if neon_usage_percent > 80:
+        recommendations.append({
+            'level': 'critical',
+            'message': f"Database usage at {neon_usage_percent:.1f}%! Run cleanup immediately."
+        })
+    elif neon_usage_percent > 60:
+        recommendations.append({
+            'level': 'warning',
+            'message': f"Database usage at {neon_usage_percent:.1f}%. Consider running cleanup."
+        })
+    
+    return render_template('admin/storage_report.html',
+                           table_data=table_data,
+                           total_db_size=total_db_size,
+                           neon_limit_bytes=neon_limit_bytes,
+                           neon_usage_percent=neon_usage_percent,
+                           row_counts=row_counts,
+                           cloudinary_usage=cloudinary_usage,
+                           cloudinary_enabled=cloudinary_enabled,
+                           cleanup_candidates=cleanup_candidates,
+                           payment_stats=payment_stats,
+                           recommendations=recommendations)
+
+
+@admin_bp.route('/storage/cleanup', methods=['POST'])
+@login_required
+@role_required('admin')
+def storage_cleanup():
+    """
+    Execute storage cleanup operations.
+    Can run specific cleanup or all cleanups based on 'operation' parameter.
+    """
+    from cleanup_service import CleanupService
+    
+    operation = request.form.get('operation', 'all')
+    
+    try:
+        if operation == 'all':
+            results = CleanupService.run_all_cleanup()
+            flash(f'✅ Cleanup completed! Deleted: {sum(v if isinstance(v, int) else sum(v.values()) for v in results.values())} records', 'success')
+        elif operation == 'qr_scans':
+            deleted = CleanupService.cleanup_old_qr_scans()
+            flash(f'✅ Deleted {deleted} old QR scans', 'success')
+        elif operation == 'attendance':
+            deleted = CleanupService.cleanup_old_attendance()
+            flash(f'✅ Deleted {deleted} old attendance records', 'success')
+        elif operation == 'subscriptions':
+            deleted = CleanupService.cleanup_old_subscriptions()
+            flash(f'✅ Deleted {deleted} old subscriptions', 'success')
+        elif operation == 'leave_requests':
+            deleted = CleanupService.cleanup_old_leave_requests()
+            flash(f'✅ Deleted {deleted} old leave requests', 'success')
+        elif operation == 'announcements':
+            deleted = CleanupService.cleanup_old_announcements()
+            flash(f'✅ Deleted {deleted} old announcements', 'success')
+        elif operation == 'feedback':
+            deleted = CleanupService.cleanup_old_feedback()
+            flash(f'✅ Deleted {deleted} old feedback', 'success')
+        elif operation == 'orders':
+            deleted = CleanupService.cleanup_old_orders()
+            flash(f'✅ Deleted {deleted} old orders', 'success')
+        elif operation == 'rejected_payments':
+            results = CleanupService.cleanup_rejected_payments()
+            flash(f'✅ Deleted {results["payments"]} rejected payments and {results["images"]} images', 'success')
+        elif operation == 'orphaned_images':
+            deleted = CleanupService.cleanup_orphaned_cloudinary_images()
+            flash(f'✅ Deleted {deleted} orphaned Cloudinary images', 'success')
+        else:
+            flash('Invalid cleanup operation', 'danger')
+    except Exception as e:
+        current_app.logger.error(f"Cleanup failed: {str(e)}")
+        flash(f'❌ Cleanup failed: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.storage_report'))
