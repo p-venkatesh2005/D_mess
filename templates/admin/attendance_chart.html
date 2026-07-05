@@ -229,9 +229,15 @@ const chart = new Chart(ctx, {
     onClick: (event, elements) => {
       if (elements.length > 0) {
         const idx = elements[0].index;
+        const datasetIndex = elements[0].datasetIndex;
         const dateStr = dates[idx];
-        const meal = ['breakfast','lunch','dinner'][elements[0].datasetIndex];
-        loadDetails(dateStr, meal);
+        const meal = ['breakfast','lunch','dinner'][datasetIndex];
+        
+        // Check if the clicked bar has data for this meal
+        const mealValue = elements[0].element.$context.parsed.y;
+        if (mealValue > 0) {
+          loadDetails(dateStr, meal);
+        }
       }
     }
   }
