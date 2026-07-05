@@ -35,7 +35,10 @@
             <td class="text-gold fw-bold">₹{{ "%.0f"|format(p.amount) }}</td>
             <td>{{ p.created_at.strftime('%d %b %Y %H:%M') }}</td>
             <td>
-              {% if p.screenshot_path %}
+              {% if p.cloudinary_url %}
+              <a href="{{ p.cloudinary_url }}" target="_blank"
+                 class="btn btn-sm btn-dark-outline"><i class="bi bi-eye"></i> View</a>
+              {% elif p.screenshot_path %}
               <a href="{{ url_for('static', filename=p.screenshot_path) }}" target="_blank"
                  class="btn btn-sm btn-dark-outline"><i class="bi bi-eye"></i> View</a>
               {% else %}—{% endif %}

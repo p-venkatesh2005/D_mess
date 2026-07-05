@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<div class="row g-4">
+<div class="row g-3">
   <!-- QR + Upload Section -->
   <div class="col-lg-5">
     <div class="mess-card">
@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div class="mess-card mt-4">
+    <div class="mess-card mt-3">
       <div class="mess-card-header"><i class="bi bi-upload me-2"></i>Upload Screenshot</div>
       <div class="mess-card-body">
         <form method="POST" action="{{ url_for('student.payment') }}" enctype="multipart/form-data">
@@ -88,13 +88,17 @@
                     {% else %}❌ Rejected{% endif %}
                   </span>
                 </td>
-                <td>
-                  {% if p.screenshot_path %}
-                    <a href="{{ url_for('static', filename=p.screenshot_path) }}" target="_blank" class="btn btn-sm btn-dark-outline">
-                      <i class="bi bi-eye"></i>
-                    </a>
-                  {% else %}—{% endif %}
-                </td>
+            <td>
+              {% if p.cloudinary_url %}
+                <a href="{{ p.cloudinary_url }}" target="_blank" class="btn btn-sm btn-dark-outline">
+                  <i class="bi bi-eye"></i>
+                </a>
+              {% elif p.screenshot_path %}
+                <a href="{{ url_for('static', filename=p.screenshot_path) }}" target="_blank" class="btn btn-sm btn-dark-outline">
+                  <i class="bi bi-eye"></i>
+                </a>
+              {% else %}—{% endif %}
+            </td>
               </tr>
               {% endfor %}
             </tbody>
