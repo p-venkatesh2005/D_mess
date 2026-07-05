@@ -623,8 +623,6 @@ h1, h2, h3, .auth-brand, .sidebar-brand {
 
 /* Consistent card spacing */
 .mess-card + .mess-card { margin-top: 1rem; }
-.col-lg-5 .mess-card + .mess-card,
-.col-lg-7 .mess-card + .mess-card { margin-top: 1rem; }
 
 /* Page sections spacing */
 .page-hero { margin-bottom: 1.5rem !important; }
@@ -632,3 +630,36 @@ h1, h2, h3, .auth-brand, .sidebar-brand {
 
 /* Reduce table row heights for compact view */
 .mess-table td, .mess-table th { padding: 0.75rem; }
+
+/* Ensure proper column layout on payment page */
+.row.g-3 > [class*='col-'] {
+  margin-bottom: 1rem;
+}
+
+/* Fix form inputs being hidden or overlapped */
+.mess-input,
+.form-control,
+.form-select {
+  position: relative;
+  z-index: 1;
+  background-color: white;
+}
+
+/* Ensure upload drop zone doesn't overlap form */
+.upload-drop-zone {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1rem;
+}
+
+/* Make sure input inside drop zone is properly positioned */
+.upload-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
